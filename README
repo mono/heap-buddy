@@ -1,0 +1,17 @@
+
+To use heap-buddy:
+
+(1) Compile heap-buddy.
+
+(2) Install into a prefix that is in your LD_LIBRARY_PATH.
+
+(3) mono --profile=heap-buddy foo.exe           writes the alloc data to ./outfile
+    mono --profile=heap-buddy:/foo/bar foo.exe  writes the alloc data to /foo/bar
+
+(4) heap-buddy /path/to/outfile report_name
+
+Otherwise, the only documentation is 'cat analyzer/*.cs'.
+
+
+
+
