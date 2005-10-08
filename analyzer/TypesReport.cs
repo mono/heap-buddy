@@ -44,6 +44,7 @@ namespace HeapBuddy {
 			SortOrder order = SortOrder.ByTotalBytes;
 			int max_rows = 25;
 			string match_string = null;
+			bool ellipsize_names = true;
 
 			// Hacky free-form arg parser
 
@@ -66,7 +67,9 @@ namespace HeapBuddy {
 				else if (arg == "match" || arg == "matching" || arg == "like") {
 					++i;
 					match_string = args [i];
-				} else {
+				} else if (arg == "full" || arg == "long" || arg == "unellipsized")
+					ellipsize_names = false;
+				else {
 					int n = -1;
 					try {
 						n = Int32.Parse (arg);
@@ -90,7 +93,8 @@ namespace HeapBuddy {
 					  "AvAge",
 					  "BT#");
 			
-			table.SetStringify (0, Util.Ellipsize);
+			if (ellipsize_names)
+				table.SetStringify (0, Util.Ellipsize);
 			table.SetStringify (2, Util.PrettySize_Obj);
 			table.SetStringify (3, "0.0");
 			table.SetStringify (4, "0.0");
