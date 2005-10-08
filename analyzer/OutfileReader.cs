@@ -970,6 +970,9 @@ namespace HeapBuddy {
 
 		public ArrayList GetTypesMatching (Regex regex)
 		{
+			if (regex == null)
+				return new ArrayList (types);
+
 			ArrayList matches;
 			matches = new ArrayList ();
 			for (int i = 0; i < types.Length; ++i)
@@ -980,6 +983,9 @@ namespace HeapBuddy {
 
 		public ArrayList GetTypesMatching (string regex)
 		{
+			if (regex == null)
+				return new ArrayList (types);
+
 			return GetTypesMatching (new Regex (regex));
 		}
 

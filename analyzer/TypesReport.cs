@@ -30,9 +30,56 @@ namespace HeapBuddy {
 
 		public TypesReport () : base ("Types") { }
 
+		enum SortOrder {
+			Unsorted,
+			ByCount,
+			ByTotalBytes,
+			ByAverageBytes,
+			ByAverageAge,
+			ByBacktraceCount,
+		}
 
 		override public void Run (OutfileReader reader, string [] args)
 		{
+			SortOrder order = SortOrder.ByTotalBytes;
+			int max_rows = 25;
+			string match_string = null;
+
+			// Hacky free-form arg parser
+
+			int i = 0;
+			while (i < args.Length) {
+				string arg = args [i].ToLower ();
+
+				if (arg == "count")
+					order = SortOrder.ByCount;
+				else if (arg == "total")
+					order = SortOrder.ByTotalBytes;
+				else if (arg == "average")
+					order = SortOrder.ByAverageBytes;
+				else if (arg == "age")
+					order = SortOrder.ByAverageAge;
+				else if (arg == "backtrace" || arg == "backtraces" || arg == "bt")
+					order = SortOrder.ByBacktraceCount;
+				else if (arg == "all")
+					max_rows = -1;
+				else if (arg == "match" || arg == "matching" || arg == "like") {
+					++i;
+					match_string = args [i];
+				} else {
+					int n = -1;
+					try {
+						n = Int32.Parse (arg);
+					} catch { }
+					if (n > 0)
+						max_rows = n;
+				}
+
+				++i;
+			}
+
+			// Generate the table
+
 			Table table;
 			table = new Table ();
 
@@ -48,7 +95,7 @@ namespace HeapBuddy {
 			table.SetStringify (3, "0.0");
 			table.SetStringify (4, "0.0");
 
-			foreach (Type type in reader.Types) {
+			foreach (Type type in reader.GetTypesMatching (match_string)) {
 				table.AddRow (type.Name,
 					      type.LastObjectStats.AllocatedCount,
 					      type.LastObjectStats.AllocatedTotalBytes,
@@ -57,8 +104,26 @@ namespace HeapBuddy {
 					      type.BacktraceCount);
 			}
 
-			table.Sort (2, false);
-			table.MaxRows = 25;
+			switch (order) {
+			case SortOrder.ByCount:
+				table.Sort (1, false);
+				break;
+			case SortOrder.ByTotalBytes:
+				table.Sort (2, false);
+				break;
+			case SortOrder.ByAverageBytes:
+				table.Sort (3, false);
+				break;
+			case SortOrder.ByAverageAge:
+				table.Sort (4, false);
+				break;
+			case SortOrder.ByBacktraceCount:
+				table.Sort (5, false);
+				break;
+			}
+
+			if (max_rows > 0)
+				table.MaxRows = max_rows;
 
 			Console.WriteLine (table);
 
