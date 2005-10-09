@@ -173,7 +173,7 @@ outfile_writer_add_accountant (OutfileWriter *ofw,
 
         /* First, add this type if we haven't seen it before. */
         if (g_hash_table_lookup (ofw->seen_items, acct->klass) == NULL) {
-                name = mono_type_get_full_name (mono_class_get_type (acct->klass));
+                name = mono_type_full_name (mono_class_get_type (acct->klass));
                 write_byte (ofw->out, TAG_TYPE);
                 write_pointer (ofw->out, acct->klass);
                 write_string (ofw->out, name);
