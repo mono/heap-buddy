@@ -1,5 +1,5 @@
 //
-// Gc.cs
+// Backtrace.cs
 //
 // Copyright (C) 2005 Novell, Inc.
 //
@@ -21,53 +21,44 @@
 //
 
 using System;
-using System.IO;
 
 namespace HeapBuddy {
 
-	public struct GcData {
-		public Backtrace Backtrace;
-		public ObjectStats ObjectStats;
-	}
+	public class Backtrace {
 
-	public class Gc {
+		public Type Type;
+		
+		public int LastGeneration;
 
-		public int Generation;
+		public ObjectStats LastObjectStats;
 
-		public long TimeT;
-		public DateTime Timestamp;
+		public Frame [] frames;
 
-		public long PreGcLiveBytes;
-		public long PostGcLiveBytes;
-
-		private GcData [] gc_data;
+		uint code;
 		OutfileReader reader;
 
-		/////////////////////////////////////////////////////////////////
-
-		public Gc (OutfileReader reader)
+		public Backtrace (uint code, OutfileReader reader)
 		{
+			this.code = code;
 			this.reader = reader;
 		}
 
-		/////////////////////////////////////////////////////////////////
-
-		public long FreedBytes {
-			get { return PreGcLiveBytes - PostGcLiveBytes; }
+		public uint Code {
+			get { return code; }
 		}
 
-		public double FreedPercentage {
-			get { return 100.0 * FreedBytes / PreGcLiveBytes; }
-		}
-
-		public GcData [] GcData {
-			get { 
-				if (gc_data == null)
-					gc_data = reader.GetGcData (Generation);
-				return gc_data; 
-			}
+		public Frame [] Frames {
 			
-			set { gc_data = value; }
+			get {
+				if (frames == null)
+					frames = reader.GetFrames (code);
+				return frames;
+			}
+
+			set {
+				frames = value;
+			}
 		}
 	}
+
 }

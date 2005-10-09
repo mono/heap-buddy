@@ -71,22 +71,17 @@ namespace HeapBuddy {
 			public long Position; // of the name in the summary file
 		}
 
-		private struct Frame {
-			public uint MethodCode;
-			public uint IlOffset;
+		private struct RawGcData {
+			public uint BacktraceCode;
+			public ObjectStats ObjectStats;
 		}
 
-		private struct Backtrace {
-			public uint TypeCode;
-			public Frame [] Frames;
-			public int LastGeneration;
-			public ObjectStats LastObjectStats;
-			public long Position;
-		}
+		string filename;
 
 		Type [] types;
 		Method [] methods;
 		Backtrace [] backtraces;
+		long [] backtrace_pos;
 		Gc [] gcs;
 		long [] gc_pos;
 		Resize [] resizes;
@@ -97,11 +92,15 @@ namespace HeapBuddy {
 		uint [] method_codes_old;
 		uint [] method_codes_new;
 		uint [] backtrace_codes;
+		uint [] backtrace_type_codes;
+		RawGcData [] [] raw_gc_data;
 		
 		///////////////////////////////////////////////////////////////////
 
 		public OutfileReader (string filename)
 		{
+			this.filename = filename;
+
 			Stream stream;
 			stream = new FileStream (filename, FileMode.Open, FileAccess.Read);
 
@@ -125,6 +124,8 @@ namespace HeapBuddy {
 				method_codes_old = new uint [n_methods];
 				method_codes_new = new uint [n_methods];
 				backtrace_codes = new uint [n_backtraces];
+				backtrace_type_codes = new uint [n_backtraces];
+				raw_gc_data = new RawGcData [n_gcs] [];
 
 				ReadLogFile (reader);
 				reader.Close ();
@@ -146,9 +147,16 @@ namespace HeapBuddy {
 				File.Copy (tmp_filename, filename, true /* allow overwrite */);
 				File.Delete (tmp_filename);
 
-				// We don't need to set lazy_reader, since all
-				// of the data will already be in memory.
+				// We need to keep around the lazy_reader, since the
+				// GcData is not in memory.
+				lazy_reader = reader;
 			}
+		}
+
+		///////////////////////////////////////////////////////////////////
+
+		public string Filename {
+			get { return filename; }
 		}
 
 		///////////////////////////////////////////////////////////////////
@@ -236,6 +244,7 @@ namespace HeapBuddy {
 			types = new Type [n_types];
 			methods = new Method [n_methods];
 			backtraces = new Backtrace [n_backtraces];
+			backtrace_pos = new long [n_backtraces];
 			gcs = new Gc [n_gcs];
 			gc_pos = new long [n_gcs];
 			resizes = new Resize [n_resizes];
@@ -411,11 +420,15 @@ namespace HeapBuddy {
 				return;
 			}
 
+			Backtrace backtrace;
+			backtrace = new Backtrace (code, this);
+			backtraces [i_backtrace] = backtrace;
+
 			backtrace_codes [i_backtrace] = code;
-			backtraces [i_backtrace].TypeCode = type_code;
+			backtrace_type_codes [i_backtrace] = type_code;
 
 			Frame [] frames = new Frame [n_frames];
-			backtraces [i_backtrace].Frames = frames;
+			backtrace.Frames = frames;
 
 			for (int i = 0; i < n_frames; ++i) {
 				frames [i].MethodCode = reader.ReadUInt32 ();
@@ -428,10 +441,28 @@ namespace HeapBuddy {
 		private void ReadLogFileChunk_Gc (BinaryReader reader)
 		{
 			Gc gc;
-			gc = new Gc ();
-			gc.ReadWithData (reader);
+			gc = new Gc (this);
+
+			gc.Generation = reader.ReadInt32 ();
+			gc.TimeT = reader.ReadInt64 ();
+			gc.Timestamp = Util.ConvertTimeT (gc.TimeT);
+			gc.PreGcLiveBytes = reader.ReadInt64 ();
+
+			int n;
+			n = reader.ReadInt32 ();
+
+			RawGcData [] raw;
+			raw = new RawGcData [n];
+			for (int i = 0; i < n; ++i) {
+				raw [i].BacktraceCode = reader.ReadUInt32 ();
+				raw [i].ObjectStats.Read (reader);
+			}
+			combsort_raw_gc_data (raw);
+
+			gc.PostGcLiveBytes = reader.ReadInt64 ();
 
 			gcs [i_gc] = gc;
+			raw_gc_data [i_gc] = raw;
 			++i_gc;
 
 			if (gc.Generation >= 0)
@@ -580,10 +611,45 @@ namespace HeapBuddy {
 						backtrace_codes [i] = backtrace_codes [j];
 						backtrace_codes [j] = tmp_code;
 
+						tmp_code = backtrace_type_codes [i];
+						backtrace_type_codes [i] = backtrace_type_codes [j];
+						backtrace_type_codes [j] = tmp_code;
+
+						long tmp_pos;
+						tmp_pos = backtrace_pos [i];
+						backtrace_pos [i] = backtrace_pos [j];
+						backtrace_pos [j] = tmp_pos;
+
 						Backtrace tmp;
 						tmp = backtraces [i];
 						backtraces [i] = backtraces [j];
 						backtraces [j] = tmp;
+
+                                                swapped = true;
+                                        }
+                                }
+                                if (gap == 1 && !swapped)
+                                        break;
+                        }
+		}
+
+		static void combsort_raw_gc_data (RawGcData [] data)
+                {
+			int start = 0;
+			int size = data.Length;
+                        int gap = size;
+                        while (true) {
+				gap = new_gap (gap);
+
+                                bool swapped = false;
+                                int end = start + size - gap;
+                                for (int i = start; i < end; i++) {
+                                        int j = i + gap;
+                                        if (data [i].BacktraceCode > data [j].BacktraceCode) {
+						RawGcData tmp;
+						tmp = data [i];
+						data [i] = data [j];
+						data [j] = tmp;
 
                                                 swapped = true;
                                         }
@@ -668,18 +734,18 @@ namespace HeapBuddy {
 
 			// Remap the backtrace codes in the GCs
 			for (int i = 0; i < gcs.Length; ++i) {
-				for (int j = 0; j < gcs [i].GcData.Length; ++j) {
+				for (int j = 0; j < raw_gc_data [i].Length; ++j) {
 					uint code;
-					code = gcs [i].GcData [j].BacktraceCode;
+					code = raw_gc_data [i] [j].BacktraceCode;
 					code = TranslateBacktraceCode (code);
-					gcs [i].GcData [j].BacktraceCode = code;
+					raw_gc_data [i] [j].BacktraceCode = code;
 				}
 			}
 
 			// Remap the type and method codes in the backtrace,
 			// and replace the backtrace codes.
 			for (int i = 0; i < backtraces.Length; ++i) {
-				backtraces [i].TypeCode = TranslateTypeCode (backtraces [i].TypeCode);
+				backtrace_type_codes [i] = TranslateTypeCode (backtrace_type_codes [i]);
 				for (int j = 0; j < backtraces [i].Frames.Length; ++j) {
 					uint code;
 					code = backtraces [i].Frames [j].MethodCode;
@@ -716,17 +782,20 @@ namespace HeapBuddy {
 			count = backtraces.Length;
 
 			for (int i = gcs.Length - 1; i >= 0; --i) {
-				for (int j = 0; j < gcs [i].GcData.Length; ++j) {
+				for (int j = 0; j < raw_gc_data [i].Length; ++j) {
+					RawGcData raw;
+					raw = raw_gc_data [i] [j];
+
 					uint bt_code;
-					bt_code = gcs [i].GcData [j].BacktraceCode;
+					bt_code = raw.BacktraceCode;
 					if (backtraces [bt_code].LastGeneration == int.MaxValue) {
 						backtraces [bt_code].LastGeneration = gcs [i].Generation;
-						backtraces [bt_code].LastObjectStats = gcs [i].GcData [j].ObjectStats;
+						backtraces [bt_code].LastObjectStats = raw.ObjectStats;
 						--count;
 
 						// Add this backtrace to our per-type totals
 						uint type_code;
-						type_code = backtraces [bt_code].TypeCode;
+						type_code = backtrace_type_codes [bt_code];
 						types [type_code].BacktraceCount++;
 						if (types [type_code].LastGeneration == int.MaxValue) {
 							types [type_code].LastGeneration = backtraces [bt_code].LastGeneration;
@@ -747,7 +816,7 @@ namespace HeapBuddy {
 
 		///////////////////////////////////////////////////////////////////
 
-		private void ReadSummaryTableOfContents (BinaryReader reader)
+		private void ReadSummary_TableOfContents (BinaryReader reader)
 		{
 			type_name_data_offset = reader.ReadInt64 ();
 			method_name_data_offset = reader.ReadInt64 ();
@@ -760,7 +829,7 @@ namespace HeapBuddy {
 			gc_index_offset = reader.ReadInt64 ();
 		}
 
-		private void WriteSummaryTableOfContents (BinaryWriter writer)
+		private void WriteSummary_TableOfContents (BinaryWriter writer)
 		{
 			writer.Write (type_name_data_offset);
 			writer.Write (method_name_data_offset);
@@ -781,29 +850,23 @@ namespace HeapBuddy {
 
 		private void ReadSummaryFile (BinaryReader reader)
 		{
-			ReadSummaryTableOfContents (reader);
-			ReadSummaryIndexes (reader);
-			ReadSummaryTypes (reader);
-			ReadSummaryResizes (reader);
-			ReadSummaryGcs (reader);
+			ReadSummary_TableOfContents (reader);
+			ReadSummary_Methods (reader);
+			ReadSummary_Types (reader);
+			ReadSummary_Backtraces (reader);
+			ReadSummary_Resizes (reader);
+			ReadSummary_Gcs (reader);
 		}
 
-		private void ReadSummaryIndexes (BinaryReader reader)
+		private void ReadSummary_Methods (BinaryReader reader)
 		{
 			reader.BaseStream.Seek (methods_by_code_offset, SeekOrigin.Begin);
 			for (int i = 0; i < methods.Length; ++i) 
 				methods [i].Position = reader.ReadInt64 ();
 
-			reader.BaseStream.Seek (backtrace_index_offset, SeekOrigin.Begin);
-			for (int i = 0; i < backtraces.Length; ++i) {
-				backtraces [i].TypeCode = reader.ReadUInt32 ();
-				backtraces [i].LastGeneration = reader.ReadInt32 ();
-				backtraces [i].LastObjectStats.Read (reader);
-				backtraces [i].Position = reader.ReadInt64 ();
-			}
 		}
 
-		private void ReadSummaryTypes (BinaryReader reader)
+		private void ReadSummary_Types (BinaryReader reader)
 		{
 			reader.BaseStream.Seek (type_name_data_offset, SeekOrigin.Begin);
 			for (int i = 0; i < types.Length; ++i) {
@@ -823,7 +886,25 @@ namespace HeapBuddy {
 			}
 		}
 
-		private void ReadSummaryResizes (BinaryReader reader)
+		private void ReadSummary_Backtraces (BinaryReader reader)
+		{
+			reader.BaseStream.Seek (backtrace_index_offset, SeekOrigin.Begin);
+			for (int i = 0; i < backtraces.Length; ++i) {
+				Backtrace backtrace;
+				backtrace = new Backtrace ((uint) i, this);
+				backtraces [i] = backtrace;
+
+				uint type_code;
+				type_code = reader.ReadUInt32 ();
+				backtrace.Type = types [type_code];
+				backtrace.LastGeneration = reader.ReadInt32 ();
+				backtrace.LastObjectStats.Read (reader);
+				backtrace_pos [i] = reader.ReadInt64 ();
+			}
+		
+		}
+
+		private void ReadSummary_Resizes (BinaryReader reader)
 		{
 			reader.BaseStream.Seek (resize_data_offset, SeekOrigin.Begin);
 			for (int i = 0; i < resizes.Length; ++i) {
@@ -836,13 +917,19 @@ namespace HeapBuddy {
 			}
 		}
 
-		private void ReadSummaryGcs (BinaryReader reader)
+		private void ReadSummary_Gcs (BinaryReader reader)
 		{
 			reader.BaseStream.Seek (gc_index_offset, SeekOrigin.Begin);
 			for (int i = 0; i < gcs.Length; ++i) {
 				Gc gc;
-				gc = new Gc ();
-				gc.ReadWithoutData (reader);
+				gc = new Gc (this);
+
+				gc.Generation = reader.ReadInt32 ();
+				gc.TimeT = reader.ReadInt64 ();
+				gc.Timestamp = Util.ConvertTimeT (gc.TimeT);
+				gc.PreGcLiveBytes = reader.ReadInt64 ();
+				gc.PostGcLiveBytes = reader.ReadInt64 ();
+
 				gcs [i] = gc;
 				gc_pos [i] = reader.ReadInt64 ();
 			}
@@ -861,19 +948,19 @@ namespace HeapBuddy {
 
 			long toc_offset;
 			toc_offset = writer.BaseStream.Position;
-			WriteSummaryTableOfContents (writer); // writes placeholder data
+			WriteSummary_TableOfContents (writer); // writes placeholder data
 			
-			WriteSummaryData (writer);
+			WriteSummary_Data (writer);
 			
-			WriteSummaryIndexes (writer);
+			WriteSummary_Indexes (writer);
 
-			WriteSummaryTypes (writer);
+			WriteSummary_Types (writer);
 
 			writer.BaseStream.Seek (toc_offset, SeekOrigin.Begin);
-			WriteSummaryTableOfContents (writer); // writes the actual data
+			WriteSummary_TableOfContents (writer); // writes the actual data
 		}
 
-		private void WriteSummaryData (BinaryWriter writer)
+		private void WriteSummary_Data (BinaryWriter writer)
 		{
 			// Write out the name strings.
 			type_name_data_offset = writer.BaseStream.Position;
@@ -894,7 +981,7 @@ namespace HeapBuddy {
 			// of each in the file.
 			backtrace_data_offset = writer.BaseStream.Position;
 			for (int i = 0; i < backtraces.Length; ++i) {
-				backtraces [i].Position = writer.BaseStream.Position;
+				backtrace_pos [i] = writer.BaseStream.Position;
 				writer.Write (backtraces [i].Frames.Length);
 				for (int j = 0; j < backtraces [i].Frames.Length; ++j) {
 					writer.Write (backtraces [i].Frames [j].MethodCode);
@@ -908,8 +995,14 @@ namespace HeapBuddy {
 			gc_data_offset = writer.BaseStream.Position;
 			for (int i = 0; i < gcs.Length; ++i) {
 				gc_pos [i] = writer.BaseStream.Position;
-				gcs [i].WriteOnlyData (writer);
+
+				writer.Write (raw_gc_data [i].Length);
+				for (int j = 0; j < raw_gc_data [i].Length; ++j) {
+					writer.Write (raw_gc_data [i] [j].BacktraceCode);
+					raw_gc_data [i] [j].ObjectStats.Write (writer);
+				}
 			}
+			raw_gc_data = null; // We don't need these anymore
 
 
 			// Write out all the resizes.
@@ -918,7 +1011,7 @@ namespace HeapBuddy {
 				resizes [i].Write (writer);
 		}
 
-		private void WriteSummaryIndexes (BinaryWriter writer)
+		private void WriteSummary_Indexes (BinaryWriter writer)
 		{
 			methods_by_code_offset = writer.BaseStream.Position;
 			for (int i = 0; i < methods.Length; ++i)
@@ -927,20 +1020,23 @@ namespace HeapBuddy {
 			// backtraces were sorted in WriteSummary
 			backtrace_index_offset = writer.BaseStream.Position;
 			for (int i = 0; i < backtraces.Length; ++i) {
-				writer.Write (backtraces [i].TypeCode);
+				writer.Write (backtrace_type_codes [i]);
 				writer.Write (backtraces [i].LastGeneration);
 				backtraces [i].LastObjectStats.Write (writer);
-				writer.Write (backtraces [i].Position);
+				writer.Write (backtrace_pos [i]);
 			}
 
 			gc_index_offset = writer.BaseStream.Position;
 			for (int i = 0; i < gcs.Length; ++i) {
-				gcs [i].WriteWithoutData (writer);
+				writer.Write (gcs [i].Generation);
+				writer.Write (gcs [i].TimeT);
+				writer.Write (gcs [i].PreGcLiveBytes);
+				writer.Write (gcs [i].PostGcLiveBytes);
 				writer.Write (gc_pos [i]);
 			}
 		}
 
-		private void WriteSummaryTypes (BinaryWriter writer)
+		private void WriteSummary_Types (BinaryWriter writer)
 		{
 			types_by_code_offset = writer.BaseStream.Position;
 			for (int i = 0; i < types.Length; ++i) {
@@ -960,6 +1056,10 @@ namespace HeapBuddy {
 
 		public Gc [] Gcs {
 			get { return gcs; }
+		}
+
+		public Backtrace [] Backtraces {
+			get { return backtraces; }
 		}
 
 		///////////////////////////////////////////////////////////////////
@@ -991,7 +1091,7 @@ namespace HeapBuddy {
 
 		///////////////////////////////////////////////////////////////////
 
-		public string GetMethodName (uint code)
+		private string GetMethodName (uint code)
 		{
 			if (methods [code].Name == null) {
 				lazy_reader.BaseStream.Seek (methods [code].Position, SeekOrigin.Begin);
@@ -1001,13 +1101,9 @@ namespace HeapBuddy {
 			return methods [code].Name;
 		}
 
-#if false
-		private void PopulateBacktrace (uint code)
+		public Frame [] GetFrames (uint backtrace_code)
 		{
-			if (backtraces [code].Frames != null)
-				return;
-
-			lazy_reader.BaseStream.Seek (backtraces [code].Position, SeekOrigin.Begin);
+			lazy_reader.BaseStream.Seek (backtrace_pos [backtrace_code], SeekOrigin.Begin);
 
 			int length;
 			length = lazy_reader.ReadInt32 ();
@@ -1019,8 +1115,29 @@ namespace HeapBuddy {
 				frames [i].IlOffset = lazy_reader.ReadUInt32 ();
 			}
 
-			backtraces [code].Frames = frames;
+			for (int i = 0; i < length; ++i)
+				frames [i].MethodName = GetMethodName (frames [i].MethodCode);
+
+			return frames;
 		}
-#endif
+
+		public GcData [] GetGcData (int generation)
+		{
+			lazy_reader.BaseStream.Seek (gc_pos [generation], SeekOrigin.Begin);
+
+			int length;
+			length = lazy_reader.ReadInt32 ();
+			
+			GcData [] gc_data;
+			gc_data = new GcData [length];
+			for (int i = 0; i < length; ++i) {
+				uint bt_code;
+				bt_code = lazy_reader.ReadUInt32 ();
+				gc_data [i].Backtrace = backtraces [bt_code];
+				gc_data [i].ObjectStats.Read (lazy_reader);
+			}
+
+			return gc_data;
+		}
 	}
 }

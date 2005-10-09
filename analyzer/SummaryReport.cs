@@ -1,5 +1,5 @@
 //
-// HeapBuddy.cs
+// SummaryReport.cs
 //
 // Copyright (C) 2005 Novell, Inc.
 //
@@ -26,38 +26,31 @@ using System.IO;
 
 namespace HeapBuddy {
 
-	static public class HeapBuddyMain {
+	public class SummaryReport : Report {
 
-		static public void Main (string [] args)
+		public SummaryReport () : base ("Summary") { }
+
+		override public void Run (OutfileReader reader, string [] args)
 		{
-			int args_i = 0;
+			Table table;
+			table = new Table ();
 
-			string outfile_name = "outfile";
-			if (args_i < args.Length && File.Exists (args [args_i])) {
-				outfile_name = args [args_i];
-				++args_i;
-			}
+			table.AddRow ("SUMMARY", "");
+			table.AddRow ("", "");
 
-			string report_name = "summary";
-			if (args_i < args.Length && Report.Exists (args [args_i])) {
-				report_name = args [args_i];
-				++args_i;
-			}
+			table.AddRow ("Filename:", reader.Filename);
+			table.AddRow ("GCs:", reader.Gcs.Length);
+			table.AddRow ("Resizes:", reader.Resizes.Length);
+			table.AddRow ("Final heap size:", Util.PrettySize (reader.Resizes [reader.Resizes.Length-1].NewSize));
 
-			Report report;
-			report = Report.Get (report_name);
+			table.AddRow ("", "");
+
+			table.AddRow ("Allocated Types:", reader.Types.Length);
+			table.AddRow ("Backtraces:", reader.Backtraces.Length);
+
+			table.SetAlignment (1, Alignment.Left);
 			
-			OutfileReader reader;
-			reader = new OutfileReader (outfile_name);
-
-			string [] remaining_args = new string [args.Length - args_i];
-			for (int i = args_i; i < args.Length; ++i)
-				remaining_args [i - args_i] = args [i];
-			
-			Console.WriteLine ();
-			report.Run (reader, remaining_args);
-			Console.WriteLine ();
+			Console.WriteLine (table);
 		}
 	}
-
 }

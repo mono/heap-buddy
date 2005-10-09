@@ -7,6 +7,7 @@ WRAPPER = heap-buddy
 
 REPORT_CSFILES =		\
 	HistoryReport.cs	\
+	SummaryReport.cs	\
 	TypesReport.cs
 
 CSFILES = 			\
@@ -15,6 +16,8 @@ CSFILES = 			\
 	Table.cs		\
 	ObjectStats.cs		\
 	Type.cs			\
+	Frame.cs		\
+	Backtrace.cs		\
 	Gc.cs			\
 	Resize.cs		\
 	OutfileReader.cs	\
