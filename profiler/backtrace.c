@@ -23,6 +23,7 @@
  * USA.
  */
 
+#include <mono/metadata/mono-debug.h>
 #include "backtrace.h"
 
 struct HashAndCountInfo {
@@ -64,7 +65,7 @@ stack_walk_build_frame_vector_fn (MonoMethod *method, gint32 native_offset, gint
 
         StackFrame *frame;
         frame = g_new0 (StackFrame, 1);
-
+        
         frame->method        = method;
         frame->native_offset = native_offset;
         frame->il_offset     = il_offset;

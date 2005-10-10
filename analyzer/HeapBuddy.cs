@@ -38,6 +38,11 @@ namespace HeapBuddy {
 				++args_i;
 			}
 
+			if (! File.Exists (outfile_name)) {
+				Console.WriteLine ("Can't find outfile '{0}'", outfile_name);
+				return;
+			}
+
 			string report_name = "summary";
 			if (args_i < args.Length && Report.Exists (args [args_i])) {
 				report_name = args [args_i];

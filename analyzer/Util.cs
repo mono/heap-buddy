@@ -34,9 +34,8 @@ namespace HeapBuddy {
 
 		static public string Ellipsize (int max_length, string str)
 		{
-			if (str.Length < max_length)
+			if (str.Length < max_length || max_length < 0)
 				return str;
-
 			
 			return str.Substring (0, max_length/2 - 2) + "..." + str.Substring (str.Length - max_length/2 + 2);
 		}

@@ -47,11 +47,19 @@ void           outfile_writer_close          (OutfileWriter *ofw);
 
 void           outfile_writer_add_accountant (OutfileWriter *ofw, Accountant *acct);
 
-void           outfile_writer_gc_begin       (OutfileWriter *ofw, gboolean is_final, gint64 total_live_bytes, gint32 n_accountants);
+void           outfile_writer_gc_begin       (OutfileWriter *ofw, 
+                                              gboolean       is_final, 
+                                              gint64         total_live_bytes, 
+                                              gint32         total_live_objects,
+                                              gint32         n_accountants);
 
 void           outfile_writer_gc_log_stats   (OutfileWriter *ofw, Accountant *acct);
 
-void           outfile_writer_gc_end         (OutfileWriter *ofw, gint64 total_live_bytes);
+void           outfile_writer_gc_end         (OutfileWriter *ofw,
+                                              gint64         total_allocated_bytes,
+                                              gint32         total_allocated_objects,
+                                              gint64         total_live_bytes,
+                                              gint32         total_live_objects);
 
 void           outfile_writer_resize         (OutfileWriter *ofw, gint64 new_size, gint64 total_live_bytes);
 

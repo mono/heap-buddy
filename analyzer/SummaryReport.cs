@@ -39,13 +39,15 @@ namespace HeapBuddy {
 			table.AddRow ("", "");
 
 			table.AddRow ("Filename:", reader.Filename);
+			table.AddRow ("Allocated Bytes:", Util.PrettySize (reader.TotalAllocatedBytes));
+			table.AddRow ("Allocated Objects:", reader.TotalAllocatedObjects);
 			table.AddRow ("GCs:", reader.Gcs.Length);
 			table.AddRow ("Resizes:", reader.Resizes.Length);
-			table.AddRow ("Final heap size:", Util.PrettySize (reader.Resizes [reader.Resizes.Length-1].NewSize));
+			table.AddRow ("Final heap size:", Util.PrettySize (reader.LastResize.NewSize));
 
 			table.AddRow ("", "");
 
-			table.AddRow ("Allocated Types:", reader.Types.Length);
+			table.AddRow ("Distinct Types:", reader.Types.Length);
 			table.AddRow ("Backtraces:", reader.Backtraces.Length);
 
 			table.SetAlignment (1, Alignment.Left);

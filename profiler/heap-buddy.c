@@ -44,6 +44,8 @@ struct _MonoProfiler {
 	GHashTable    *accountant_hash;
 	gint64         total_allocated_bytes;
 	gint64         total_live_bytes;
+	gint32         total_allocated_objects;
+	gint32         total_live_objects;
 	gint32         n_dirty_accountants;
 	OutfileWriter *outfile_writer;
 };
@@ -86,6 +88,8 @@ heap_buddy_alloc_func (MonoProfiler *p, MonoObject *obj, MonoClass *klass)
 	accountant_register_object (acct, obj, size);
 	p->total_allocated_bytes += size;
 	p->total_live_bytes += size;
+	p->total_allocated_objects++;
+	p->total_live_objects++;
 
 	mono_mutex_unlock (&p->lock);
 }
@@ -98,6 +102,7 @@ post_gc_tallying_fn (gpointer key, gpointer value, gpointer user_data)
 
 	accountant_post_gc_processing (acct);
 	p->total_live_bytes += acct->n_live_bytes;
+	p->total_live_objects += acct->n_live_objects;
 	if (acct->dirty)
 		++p->n_dirty_accountants;	
 }
@@ -120,6 +125,7 @@ static void
 heap_buddy_gc_func (MonoProfiler *p, MonoGCEvent e, int gen)
 {
 	gint64 prev_total_live_bytes;
+	gint32 prev_total_live_objects;
 	
 	if (e != MONO_GC_EVENT_MARK_END)
 		return;
@@ -127,16 +133,24 @@ heap_buddy_gc_func (MonoProfiler *p, MonoGCEvent e, int gen)
 	mono_mutex_lock (&p->lock);
 
 	prev_total_live_bytes = p->total_live_bytes;
+	prev_total_live_objects = p->total_live_objects;
 
 	p->total_live_bytes = 0;
+	p->total_live_objects = 0;
 	p->n_dirty_accountants = 0;
 	g_hash_table_foreach (p->accountant_hash, post_gc_tallying_fn, p);
 	
 	outfile_writer_gc_begin (p->outfile_writer,
 				 gen < 0, // negative gen == this is final
-				 prev_total_live_bytes, p->n_dirty_accountants);
+				 prev_total_live_bytes,
+				 prev_total_live_objects,
+				 p->n_dirty_accountants);
 	g_hash_table_foreach (p->accountant_hash, post_gc_logging_fn, p);
-	outfile_writer_gc_end (p->outfile_writer, p->total_live_bytes);
+	outfile_writer_gc_end (p->outfile_writer,
+			       p->total_allocated_bytes,
+			       p->total_allocated_objects,
+			       p->total_live_bytes,
+			       p->total_live_objects);
 
 	mono_mutex_unlock (&p->lock);
 }

@@ -29,6 +29,7 @@ namespace HeapBuddy {
 		
 		public uint MethodCode;
 		public string MethodName;
+		public string MethodArguments;
 		public uint IlOffset;
 	}
 

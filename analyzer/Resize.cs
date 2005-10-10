@@ -39,6 +39,15 @@ namespace HeapBuddy {
 
 		public long TotalLiveBytes;
 
+		public double PreResizeCapacity {
+			get { return PreviousSize == 0 ? 0 : 100.0 * TotalLiveBytes / PreviousSize; }
+		}
+
+		public double PostResizeCapacity {
+			get { return PreviousSize == 0 ? 0 : 100.0 * TotalLiveBytes / NewSize; }
+		}
+
+
 		// You need to set PreviousSize by hand.
 		public void Read (BinaryReader reader, int generation)
 		{

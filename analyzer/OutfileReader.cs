@@ -32,8 +32,8 @@ namespace HeapBuddy {
 		public bool Debug = false;
 
 		const uint magic_number = 0x4eabbdd1;
-		const int expected_log_version = 4;
-		const int expected_summary_version = 1;
+		const int expected_log_version = 5;
+		const int expected_summary_version = 2;
 		const string log_file_label = "heap-buddy logfile";
 		const string summary_file_label = "heap-buddy summary";
 
@@ -49,6 +49,9 @@ namespace HeapBuddy {
 		int n_methods;
 		int n_backtraces;
 		int n_resizes;
+
+		public long TotalAllocatedBytes;
+		public int  TotalAllocatedObjects;
 
 		// Offsets in the summary file
 		long type_name_data_offset = -1;
@@ -68,6 +71,7 @@ namespace HeapBuddy {
 
 		private struct Method {
 			public string Name;
+			public string Arguments;
 			public long Position; // of the name in the summary file
 		}
 
@@ -177,8 +181,12 @@ namespace HeapBuddy {
 		{
 			uint this_magic;
 			this_magic = reader.ReadUInt32 ();
-			if (this_magic != magic_number)
-				throw new Exception ("Bad magic number in heap-buddy outfile");
+			if (this_magic != magic_number) {
+				string msg;
+				msg = String.Format ("Bad magic number: expected {0}, found {1}",
+						     magic_number, this_magic);
+				throw new Exception (msg);
+			}
 
 			int this_version;
 			this_version = reader.ReadInt32 ();
@@ -235,6 +243,9 @@ namespace HeapBuddy {
 			n_backtraces = reader.ReadInt32 ();
 			n_resizes = reader.ReadInt32 ();
 
+			TotalAllocatedBytes = reader.ReadInt64 ();
+			TotalAllocatedObjects = reader.ReadInt32 ();
+
 			Spew ("GCs = {0}", n_gcs);
 			Spew ("Types = {0}", n_types);
 			Spew ("Methods = {0}", n_methods);
@@ -265,6 +276,8 @@ namespace HeapBuddy {
 			writer.Write (n_methods);
 			writer.Write (n_backtraces);
 			writer.Write (n_resizes);
+			writer.Write (TotalAllocatedBytes);
+			writer.Write (TotalAllocatedObjects);
 
 			Spew ("Finished writing header");
 		}
@@ -447,6 +460,7 @@ namespace HeapBuddy {
 			gc.TimeT = reader.ReadInt64 ();
 			gc.Timestamp = Util.ConvertTimeT (gc.TimeT);
 			gc.PreGcLiveBytes = reader.ReadInt64 ();
+			gc.PreGcLiveObjects = reader.ReadInt32 ();
 
 			int n;
 			n = reader.ReadInt32 ();
@@ -460,6 +474,7 @@ namespace HeapBuddy {
 			combsort_raw_gc_data (raw);
 
 			gc.PostGcLiveBytes = reader.ReadInt64 ();
+			gc.PostGcLiveObjects = reader.ReadInt32 ();
 
 			gcs [i_gc] = gc;
 			raw_gc_data [i_gc] = raw;
@@ -746,11 +761,15 @@ namespace HeapBuddy {
 			// and replace the backtrace codes.
 			for (int i = 0; i < backtraces.Length; ++i) {
 				backtrace_type_codes [i] = TranslateTypeCode (backtrace_type_codes [i]);
+				backtraces [i].Type = types [backtrace_type_codes [i]];
 				for (int j = 0; j < backtraces [i].Frames.Length; ++j) {
 					uint code;
 					code = backtraces [i].Frames [j].MethodCode;
 					code = TranslateMethodCode (code);
 					backtraces [i].Frames [j].MethodCode = code;
+					GetMethod (code,
+						   out backtraces [i].Frames [j].MethodName,
+						   out backtraces [i].Frames [j].MethodArguments);
 				}
 			}
 
@@ -928,7 +947,9 @@ namespace HeapBuddy {
 				gc.TimeT = reader.ReadInt64 ();
 				gc.Timestamp = Util.ConvertTimeT (gc.TimeT);
 				gc.PreGcLiveBytes = reader.ReadInt64 ();
+				gc.PreGcLiveObjects = reader.ReadInt32 ();
 				gc.PostGcLiveBytes = reader.ReadInt64 ();
+				gc.PostGcLiveObjects = reader.ReadInt32 ();
 
 				gcs [i] = gc;
 				gc_pos [i] = reader.ReadInt64 ();
@@ -1031,7 +1052,9 @@ namespace HeapBuddy {
 				writer.Write (gcs [i].Generation);
 				writer.Write (gcs [i].TimeT);
 				writer.Write (gcs [i].PreGcLiveBytes);
+				writer.Write (gcs [i].PreGcLiveObjects);
 				writer.Write (gcs [i].PostGcLiveBytes);
+				writer.Write (gcs [i].PostGcLiveObjects);
 				writer.Write (gc_pos [i]);
 			}
 		}
@@ -1054,8 +1077,16 @@ namespace HeapBuddy {
 			get { return resizes; }
 		}
 
+		public Resize LastResize {
+			get { return resizes [resizes.Length-1]; }
+		}
+
 		public Gc [] Gcs {
 			get { return gcs; }
+		}
+
+		public Gc LastGc {
+			get { return gcs [gcs.Length-1]; }
 		}
 
 		public Backtrace [] Backtraces {
@@ -1091,14 +1122,21 @@ namespace HeapBuddy {
 
 		///////////////////////////////////////////////////////////////////
 
-		private string GetMethodName (uint code)
+		private void GetMethod (uint code, out string name, out string args)
 		{
 			if (methods [code].Name == null) {
 				lazy_reader.BaseStream.Seek (methods [code].Position, SeekOrigin.Begin);
-				methods [code].Name = lazy_reader.ReadString ();
+
+				string method;
+				method = lazy_reader.ReadString ();
+
+				int i = method.IndexOf (" (");
+				methods [code].Name = method.Substring (0, i);
+				methods [code].Arguments = method.Substring (i+1);
 			}
 
-			return methods [code].Name;
+			name = methods [code].Name;
+			args = methods [code].Arguments;
 		}
 
 		public Frame [] GetFrames (uint backtrace_code)
@@ -1116,7 +1154,10 @@ namespace HeapBuddy {
 			}
 
 			for (int i = 0; i < length; ++i)
-				frames [i].MethodName = GetMethodName (frames [i].MethodCode);
+				GetMethod (frames [i].MethodCode,
+					   out frames [i].MethodName,
+					   out frames [i].MethodArguments);
+
 
 			return frames;
 		}

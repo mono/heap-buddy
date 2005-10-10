@@ -20,7 +20,7 @@ ALL_OUTFILES = $(ALL_CSFILES:%.cs=%.outfile)
 
 %.outfile: %.exe
 	@echo "generating $@"
-	LD_LIBRARY_PATH=../profiler/.libs:$LD_LIBRARY_PATH $(RUNTIME) --profile=heap-buddy:$@ $^
+	LD_LIBRARY_PATH=../profiler/.libs:$LD_LIBRARY_PATH $(RUNTIME) --debug --profile=heap-buddy:$@ $^
 
 test: $(ALL_OUTFILES)
 

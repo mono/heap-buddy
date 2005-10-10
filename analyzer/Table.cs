@@ -36,14 +36,15 @@ namespace HeapBuddy {
 
 	public class Table {
 
-		private int cols = -1;
+		private int n_cols = -1;
 		private string [] headers;
 		private Alignment [] alignment;
-		private int [] max_length;
 		private Stringify [] stringify;
 		private ArrayList rows = new ArrayList ();
 
 		public int MaxRows = int.MaxValue;
+		public bool SkipLines = false;
+		public string Separator = " ";
 
 		public int RowCount {
 			get { return rows.Count; }
@@ -51,22 +52,20 @@ namespace HeapBuddy {
 
 		private void CheckColumns (ICollection whatever)
 		{
-			if (cols == -1) {
+			if (n_cols == -1) {
 
-				cols = whatever.Count;
-				if (cols == 0)
+				n_cols = whatever.Count;
+				if (n_cols == 0)
 					throw new Exception ("Can't have zero columns!");
 
-				alignment = new Alignment [cols];
-				for (int i = 0; i < cols; ++i)
+				alignment = new Alignment [n_cols];
+				for (int i = 0; i < n_cols; ++i)
 					alignment [i] = Alignment.Right;
 
-				max_length = new int [cols];
-
-				stringify = new Stringify [cols];
+				stringify = new Stringify [n_cols];
 				
-			} else if (cols != whatever.Count) {
-				throw new Exception (String.Format ("Expected {0} columns, got {1}", cols, whatever.Count));
+			} else if (n_cols != whatever.Count) {
+				throw new Exception (String.Format ("Expected {0} columns, got {1}", n_cols, whatever.Count));
 			}
 		}
 		
@@ -74,24 +73,12 @@ namespace HeapBuddy {
 		{
 			CheckColumns (args);
 			headers = args;
-			for (int i = 0; i < cols; ++i) {
-				int len = args [i].Length;
-				if (len > max_length [i])
-					max_length [i] = len;
-			}
 		}
 
 		public void AddRow (params object [] row)
 		{
 			CheckColumns (row);
 			rows.Add (row);
-			for (int i = 0; i < cols; ++i) {
-				string str;
-				str = stringify [i] != null ? stringify [i] (row [i]) : row [i].ToString ();
-				int len = str.Length;
-				if (len > max_length [i])
-					max_length [i] = len;
-			}
 		}
 
 		public void SetAlignment (int i, Alignment align)
@@ -178,8 +165,8 @@ namespace HeapBuddy {
 
 		private string GetColumnSeparator (int i)
 		{
-			if (0 <= i && i < cols-1)
-				return " ";
+			if (0 <= i && i < n_cols-1)
+				return Separator;
 			return "";
 		}
 
@@ -201,33 +188,79 @@ namespace HeapBuddy {
 
 		override public string ToString ()
 		{
-			StringBuilder sb;
+			int n_rows;
+			n_rows = rows.Count;
+			if (n_rows > MaxRows)
+				n_rows = MaxRows;
+
+			int [] max_width;
+			max_width = new int [n_cols];
+
+			if (headers != null)
+				for (int i = 0; i < headers.Length; ++i)
+					max_width [i] = headers [i].Length;
+
+			string [][][] grid;
+			grid = new string [n_rows] [][];
+
+			for (int r = 0; r < n_rows; ++r) {
+				object [] row = (object []) rows [r];
+				grid [r] = new string [n_cols] [];
+				for (int c = 0; c < n_cols; ++c) {
+					string str;
+					str = stringify [c] != null ? stringify [c] (row [c]) : row [c].ToString ();
+					grid [r] [c] = str.Split ('\n');
+
+					foreach (string part in grid [r] [c])
+						if (part.Length > max_width [c])
+							max_width [c] = part.Length;
+				}
+			}
+
+			StringBuilder sb, line;
 			sb = new StringBuilder ();
+			line = new StringBuilder ();
 
 			if (headers != null) {
 				sb.Append (GetColumnSeparator (-1));
-				for (int i = 0; i < cols; ++i) {
-					sb.Append (Pad (max_length [i], Alignment.Center, headers [i]));
+				for (int i = 0; i < n_cols; ++i) {
+					sb.Append (Pad (max_width [i], Alignment.Center, headers [i]));
 					sb.Append (GetColumnSeparator (i));
 				}
 				sb.Append ('\n');
 			}
 
-			int count = 0;
-			foreach (object [] row in rows) {
-				if (count != 0)
-					sb.Append ('\n');
-				sb.Append (GetColumnSeparator (-1));
-				for (int i = 0; i < cols; ++i) {
-					string str;
-					str = stringify [i] != null ? stringify [i] (row [i]) : row [i].ToString ();
-					str = Pad (max_length [i], alignment [i], str);
-					sb.Append (str);
-					sb.Append (GetColumnSeparator (i));
+			for (int r = 0; r < n_rows; ++r) {
+
+				bool did_something = true;
+				int i = 0;
+
+				if (SkipLines && (r != 0 || headers != null))
+				    sb.Append ('\n');
+				    
+				while (did_something) {
+					did_something = false;
+
+					line.Length = 0;
+					line.Append (GetColumnSeparator (-1));
+					for (int c = 0; c < n_cols; ++c) {
+						string str = "";
+						if (i < grid [r] [c].Length) {
+							str = grid [r][c][i];
+							did_something = true;
+						}
+						str = Pad (max_width [c], alignment [c], str);
+						line.Append (str);
+						line.Append (GetColumnSeparator (c));
+					}
+					
+					if (did_something) {
+						if (r != 0 || i != 0)
+							sb.Append ('\n');
+						sb.Append (line);
+					}
+					++i;
 				}
-				++count;
-				if (count >= MaxRows)
-					break;
 			}
 
 			return sb.ToString ();

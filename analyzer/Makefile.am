@@ -6,6 +6,7 @@ TARGET = HeapBuddy.exe
 WRAPPER = heap-buddy
 
 REPORT_CSFILES =		\
+	BacktracesReport.cs	\
 	HistoryReport.cs	\
 	SummaryReport.cs	\
 	TypesReport.cs

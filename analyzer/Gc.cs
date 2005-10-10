@@ -38,7 +38,9 @@ namespace HeapBuddy {
 		public DateTime Timestamp;
 
 		public long PreGcLiveBytes;
+		public int  PreGcLiveObjects;
 		public long PostGcLiveBytes;
+		public int  PostGcLiveObjects;
 
 		private GcData [] gc_data;
 		OutfileReader reader;
@@ -56,8 +58,16 @@ namespace HeapBuddy {
 			get { return PreGcLiveBytes - PostGcLiveBytes; }
 		}
 
-		public double FreedPercentage {
-			get { return 100.0 * FreedBytes / PreGcLiveBytes; }
+		public int FreedObjects {
+			get { return PreGcLiveObjects - PostGcLiveObjects; }
+		}
+
+		public double FreedBytesPercentage {
+			get { return PreGcLiveBytes == 0 ? 0 : 100.0 * FreedBytes / PreGcLiveBytes; }
+		}
+
+		public double FreedObjectsPercentage {
+			get { return PreGcLiveObjects == 0 ? 0 : 100.0 * FreedObjects / PreGcLiveObjects; }
 		}
 
 		public GcData [] GcData {

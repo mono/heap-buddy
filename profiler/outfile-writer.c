@@ -29,7 +29,7 @@
 #include "outfile-writer.h"
 
 #define MAGIC_NUMBER 0x4eabbdd1
-#define FILE_FORMAT_VERSION 4
+#define FILE_FORMAT_VERSION 5
 #define FILE_LABEL "heap-buddy logfile"
 
 #define TAG_TYPE    0x01
@@ -127,12 +127,16 @@ outfile_writer_open (const char *filename)
         write_int32 (ofw->out, -1); // total # of methods
         write_int32 (ofw->out, -1); // total # of contexts/backtraces
         write_int32 (ofw->out, -1); // total # of resizes
+        write_int64 (ofw->out, -1); // total # of allocated bytes
+        write_int32 (ofw->out, -1); // total # of allocated objects
 
         return ofw;
 }
 
 static void
-outfile_writer_update_totals (OutfileWriter *ofw)
+outfile_writer_update_totals (OutfileWriter *ofw,
+                              gint64         total_allocated_bytes,
+                              gint32         total_allocated_objects)
 {
         // Seek back up to the right place in the header
         fseek (ofw->out, ofw->saved_outfile_offset, SEEK_SET);
@@ -144,6 +148,11 @@ outfile_writer_update_totals (OutfileWriter *ofw)
         write_int32 (ofw->out, ofw->method_count);
         write_int32 (ofw->out, ofw->context_count);
         write_int32 (ofw->out, ofw->resize_count);
+
+        if (total_allocated_bytes >= 0) {
+                write_int64 (ofw->out, total_allocated_bytes);
+                write_int32 (ofw->out, total_allocated_objects);
+        }
 
         // Seek back to the end of the outfile
         fseek (ofw->out, 0, SEEK_END);
@@ -216,7 +225,11 @@ outfile_writer_add_accountant (OutfileWriter *ofw,
 // total_live_bytes is the total size of all of the live objects
 // before the GC
 void
-outfile_writer_gc_begin (OutfileWriter *ofw, gboolean is_final, gint64 total_live_bytes, gint32 n_accountants)
+outfile_writer_gc_begin (OutfileWriter *ofw,
+                         gboolean       is_final, 
+                         gint64         total_live_bytes, 
+                         gint32         total_live_objects,
+                         gint32         n_accountants)
 {
         time_t timestamp;
         time (&timestamp);
@@ -225,6 +238,7 @@ outfile_writer_gc_begin (OutfileWriter *ofw, gboolean is_final, gint64 total_liv
         write_int32 (ofw->out, is_final ? -1 : ofw->gc_count);
         write_int64 (ofw->out, (gint64) timestamp);
         write_int64 (ofw->out, total_live_bytes);
+        write_int32 (ofw->out, total_live_objects);
         write_int32 (ofw->out, n_accountants);
 
         ++ofw->gc_count;
@@ -248,15 +262,22 @@ outfile_writer_gc_log_stats (OutfileWriter *ofw,
 // total_live_bytes is the total size of all live objects
 // after the GC is finished
 void
-outfile_writer_gc_end (OutfileWriter *ofw, gint64 total_live_bytes)
+outfile_writer_gc_end (OutfileWriter *ofw,
+                       gint64         total_allocated_bytes,
+                       gint32         total_allocated_objects,
+                       gint64         total_live_bytes,
+                       gint32         total_live_objects)
 {
         write_int64 (ofw->out, total_live_bytes);
-        outfile_writer_update_totals (ofw);
+        write_int32 (ofw->out, total_live_objects);
+        outfile_writer_update_totals (ofw, total_allocated_bytes, total_allocated_objects);
         fflush (ofw->out);
 }
 
 void
-outfile_writer_resize (OutfileWriter *ofw, gint64 new_size, gint64 total_live_bytes)
+outfile_writer_resize (OutfileWriter *ofw,
+                       gint64         new_size,
+                       gint64         total_live_bytes)
 {
         time_t timestamp;
         time (&timestamp);
@@ -266,7 +287,7 @@ outfile_writer_resize (OutfileWriter *ofw, gint64 new_size, gint64 total_live_by
         write_int64 (ofw->out, new_size);
         write_int64 (ofw->out, total_live_bytes);
         ++ofw->resize_count;
-        outfile_writer_update_totals (ofw);
+        outfile_writer_update_totals (ofw, -1, -1);
         fflush (ofw->out);
 }
 
