@@ -151,9 +151,23 @@ namespace HeapBuddy {
 				File.Copy (tmp_filename, filename, true /* allow overwrite */);
 				File.Delete (tmp_filename);
 
-				// We need to keep around the lazy_reader, since the
-				// GcData is not in memory.
-				lazy_reader = reader;
+				// Fix up the method names
+				for (int i = 0; i < methods.Length; ++i) {
+					int j = methods [i].Name.IndexOf (" (");
+					methods [i].Arguments = methods [i].Name.Substring (j+1);
+					methods [i].Name = methods [i].Name.Substring (0, j);
+				}
+
+				// Put the right method names in the frames
+				for (int i = 0; i < backtraces.Length; ++i)
+					for (int j = 0; j < backtraces [i].Frames.Length; ++j)
+						GetMethod (backtraces [i].Frames [j].MethodCode,
+							   out backtraces [i].Frames [j].MethodName,
+							   out backtraces [i].Frames [j].MethodArguments);
+
+				// Re-open the file for use as a lazy reader.
+				stream = new FileStream (filename, FileMode.Open, FileAccess.Read);
+				lazy_reader = new BinaryReader (stream);
 			}
 		}
 
@@ -761,15 +775,11 @@ namespace HeapBuddy {
 			// and replace the backtrace codes.
 			for (int i = 0; i < backtraces.Length; ++i) {
 				backtrace_type_codes [i] = TranslateTypeCode (backtrace_type_codes [i]);
-				backtraces [i].Type = types [backtrace_type_codes [i]];
 				for (int j = 0; j < backtraces [i].Frames.Length; ++j) {
 					uint code;
 					code = backtraces [i].Frames [j].MethodCode;
 					code = TranslateMethodCode (code);
 					backtraces [i].Frames [j].MethodCode = code;
-					GetMethod (code,
-						   out backtraces [i].Frames [j].MethodName,
-						   out backtraces [i].Frames [j].MethodArguments);
 				}
 			}
 
@@ -778,6 +788,12 @@ namespace HeapBuddy {
 			// them out to the summary file.
 			combsort_types (SortOrder.ByName);
 			combsort_methods (SortOrder.ByName);
+
+			// Populate the backtrace types and codes
+			for (int i = 0; i < backtraces.Length; ++i) {
+				backtraces [i].Code = TranslateBacktraceCode (backtraces [i].Code);
+				backtraces [i].Type = types [backtrace_type_codes [i]];
+			}
 
 			// After remapping the codes, we don't need these any more.
 			type_codes_old = null;

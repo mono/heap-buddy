@@ -45,6 +45,7 @@ namespace HeapBuddy {
 
 		public uint Code {
 			get { return code; }
+			set { code = value; }
 		}
 
 		public Frame [] Frames {
