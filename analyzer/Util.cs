@@ -32,6 +32,16 @@ namespace HeapBuddy {
 			return base_time.AddSeconds (time_t);
 		}
 
+		/////////////////////////////////////////////////////////////////////////////////////
+
+		static public bool ContainsNoCase (string haystack, string needle)
+		{
+			// FIXME: This could be much more efficient
+			return haystack.ToLower ().IndexOf (needle.ToLower ()) >= 0;
+		}
+
+		/////////////////////////////////////////////////////////////////////////////////////
+
 		static public string Ellipsize (int max_length, string str)
 		{
 			if (str.Length < max_length || max_length < 0)
@@ -44,6 +54,8 @@ namespace HeapBuddy {
 		{
 			return Ellipsize (40, (string) str);
 		}
+
+		/////////////////////////////////////////////////////////////////////////////////////
 
 		static public string PrettySize (uint num_bytes)
 		{

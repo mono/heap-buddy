@@ -70,6 +70,7 @@ namespace HeapBuddy {
 		{
 			SortOrder order = SortOrder.ByTotalBytes;
 			int max_rows = 25;
+			string match_string = null;
 			bool ellipsize_names = true;
 
 			// Hacky free-form arg parser
@@ -88,7 +89,10 @@ namespace HeapBuddy {
 					order = SortOrder.ByAverageAge;
 				else if (arg == "all")
 					max_rows = -1;
-				else if (arg == "full" || arg == "long" || arg == "unellipsized")
+				else if (arg == "match" || arg == "matching" || arg == "like") {
+					++i;
+					match_string = args [i];
+				} else if (arg == "full" || arg == "long" || arg == "unellipsized")
 					ellipsize_names = false;
 				else {
 					int n = -1;
@@ -122,6 +126,8 @@ namespace HeapBuddy {
 			table.SetStringify (4, "0.0");
 
 			foreach (Backtrace bt in reader.Backtraces) {
+				if (match_string != null && ! bt.Matches (match_string))
+					continue;
 				table.AddRow (bt,
 					      bt.LastObjectStats.AllocatedCount,
 					      bt.LastObjectStats.AllocatedTotalBytes,

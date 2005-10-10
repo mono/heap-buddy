@@ -39,6 +39,11 @@ namespace HeapBuddy {
 		// Total allocation stats for this type as of the
 		// last generation in which there were live objects.
 		public ObjectStats LastObjectStats;
+
+		public bool Matches (string pattern)
+		{
+			return Util.ContainsNoCase (Name, pattern);
+		}
 	}
 
 }

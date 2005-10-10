@@ -99,7 +99,9 @@ namespace HeapBuddy {
 			table.SetStringify (3, "0.0");
 			table.SetStringify (4, "0.0");
 
-			foreach (Type type in reader.GetTypesMatching (match_string)) {
+			foreach (Type type in reader.Types) {
+				if (match_string != null && ! type.Matches (match_string))
+					continue;
 				table.AddRow (type.Name,
 					      type.LastObjectStats.AllocatedCount,
 					      type.LastObjectStats.AllocatedTotalBytes,

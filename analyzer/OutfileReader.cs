@@ -1093,31 +1093,8 @@ namespace HeapBuddy {
 			get { return backtraces; }
 		}
 
-		///////////////////////////////////////////////////////////////////
-
 		public Type [] Types {
 			get { return types; }
-		}
-
-		public ArrayList GetTypesMatching (Regex regex)
-		{
-			if (regex == null)
-				return new ArrayList (types);
-
-			ArrayList matches;
-			matches = new ArrayList ();
-			for (int i = 0; i < types.Length; ++i)
-				if (regex.Match (types [i].Name).Success)
-					matches.Add (types [i]);
-			return matches;
-		}
-
-		public ArrayList GetTypesMatching (string regex)
-		{
-			if (regex == null)
-				return new ArrayList (types);
-
-			return GetTypesMatching (new Regex (regex));
 		}
 
 		///////////////////////////////////////////////////////////////////

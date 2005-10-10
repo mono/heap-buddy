@@ -59,6 +59,25 @@ namespace HeapBuddy {
 				frames = value;
 			}
 		}
+
+		public bool MatchesType (string pattern)
+		{
+			return Type.Matches (pattern);
+		}
+
+		public bool MatchesMethod (string pattern)
+		{
+			int n = Frames.Length;
+			for (int i = 0; i < n; ++i)
+				if (Util.ContainsNoCase (frames [i].MethodName, pattern))
+					return true;
+			return false;
+		}
+
+		public bool Matches (string pattern)
+		{
+			return MatchesType (pattern) || MatchesMethod (pattern);
+		}
 	}
 
 }
