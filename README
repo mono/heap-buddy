@@ -139,3 +139,22 @@ exactly where each allocation occurred.
 (etc.)
 
 You can also use Elizatron 2000(tm)-style arguments with this report.
+
+
+
+KNOWN BUGS/ISSUES:
+
+On SMP systems, heap-buddy will cause the mono runtime to lock up almost
+immediately.
+
+Outfiles are not architecture independent.
+
+Heap-buddy is not smart about recursive programs.  If you have a recursive
+function that contains allocations, each level of recursion will generate a
+distinct backtrace.  This produces extremely large outfiles and
+difficult-to-read reports.  (This is fixable, but requires adding code to the
+runtime plug-in to intelligently detect cycles in backtraces.)
+
+Some misguided people think that the natural language interface is silly.
+
+
