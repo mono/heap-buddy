@@ -48,7 +48,7 @@ uninstall-local:
 
 
 EXTRA_DIST = 			\
-	$(SRCDIR_CSFILES)	\
+	$(CSFILES)		\
 	$(WRAPPER).in
 
 CLEANFILES =			\
