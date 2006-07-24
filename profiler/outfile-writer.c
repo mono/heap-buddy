@@ -209,8 +209,12 @@ outfile_writer_add_accountant (OutfileWriter *ofw,
         }
 
         /* Now we can spew out the accountant's context */
+        time_t timestamp;
+        time (&timestamp);
+        
         write_byte (ofw->out, TAG_CONTEXT);
         write_pointer (ofw->out, acct);
+        write_int64 (ofw->out, (gint64)timestamp);
         write_pointer (ofw->out, acct->klass);
         write_int16 (ofw->out, frame_count);
         for (i = 0; acct->backtrace [i] != NULL; ++i) {

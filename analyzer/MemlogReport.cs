@@ -278,6 +278,13 @@ namespace HeapBuddy {
 					
 						break;
 						
+					
+					case "graph":
+						Memgraph graph = new Memgraph (reader, "string");
+						
+						break;
+					
+						
 					case "/":
 						SetPath ("/");
 						break;
@@ -351,7 +358,11 @@ namespace HeapBuddy {
 							}
 							
 						} else {
-							SetPath (arg);
+							try {
+								SetPath (arg);
+							} catch (ArgumentException e) {
+								
+							}
 						}
 						
 						PrintMethods (CurrentZone);
@@ -373,6 +384,8 @@ namespace HeapBuddy {
 						try {
 							PrintMethods (CurrentZone);
 						} catch { }
+					
+					op = Operand.OP_NONE;
 
 					break;
 

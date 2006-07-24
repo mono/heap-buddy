@@ -154,7 +154,7 @@ sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
 CSC = mcs -debug
-CSFLAGS = -target:exe
+CSFLAGS = -target:exe -pkg:gtk-sharp -r:Mono.Cairo
 TARGET = HeapBuddy.exe
 WRAPPER = heap-buddy
 REPORT_CSFILES = \
@@ -179,6 +179,7 @@ CSFILES = \
 	TypeLog.cs		\
 	MethodLog.cs		\
 	MemZone.cs		\
+	MemGraph.cs		\
 	$(REPORT_CSFILES)
 
 bin_SCRIPTS = \
