@@ -435,8 +435,6 @@ namespace HeapBuddy {
 
 			Backtrace backtrace;
 			backtrace = new Backtrace (code, this);
-
-			backtrace.TimeT = reader.ReadInt64 ();
 			
 			uint type_code;
 			type_code = reader.ReadUInt32 ();
@@ -454,8 +452,6 @@ namespace HeapBuddy {
 
 			backtraces [i_backtrace] = backtrace;
 			
-			backtrace.Timestamp = Util.ConvertTimeT (backtrace.TimeT);
-
 			backtrace_codes [i_backtrace] = code;
 			backtrace_type_codes [i_backtrace] = type_code;
 

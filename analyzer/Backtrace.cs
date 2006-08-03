@@ -29,9 +29,6 @@ namespace HeapBuddy {
 		public Type Type;
 		
 		public int LastGeneration;
-		
-		public long TimeT;
-		public DateTime Timestamp;
 
 		public ObjectStats LastObjectStats;
 
