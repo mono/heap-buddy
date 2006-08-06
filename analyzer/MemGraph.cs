@@ -1,9 +1,8 @@
 using System;
 using System.Collections;
-using Cairo;
 
 namespace HeapBuddy {
-
+	
 	public class LongStats {
 		private ArrayList Data;
 		private long      Total;
@@ -12,7 +11,7 @@ namespace HeapBuddy {
 		public LongStats() {
 			Data     = new ArrayList ();
 			Total    = 0;
-			isSorted = 0;
+			isSorted = false;
 		}
 		
 		public void Add (long n) {
@@ -32,7 +31,7 @@ namespace HeapBuddy {
 					isSorted = true;
 				}
 				
-				return Data [0];
+				return (long)Data [0];
 			}
 		}
 		
@@ -47,7 +46,7 @@ namespace HeapBuddy {
 					isSorted = true;
 				}
 				
-				return Data [Data.Count - 1];
+				return (long)Data [Data.Count - 1];
 			}		
 		}
 		
@@ -60,33 +59,17 @@ namespace HeapBuddy {
 				return (long)((float)Total / (float)Data.Count);
 			}
 		}
-		
 	}
-		
+	
 	public class Memgraph {
 		private LongStats Stats;
-	
+
 		public Memgraph (OutfileReader reader, string data)
 		{
 			Stats = new LongStats ();
 			
-			CollectStats (reader, data);			
+			CollectStats (reader, data);
 			DisplayStats (Stats);
-			
-			ImageSurface surface = new ImageSurface (Format.RGB24, 320, 240);
-			Context c = new Context (surface);
-			
-			c.Color = new Color (1, 1, 1, 1);
-			c.Paint ();
-			
-			c.Color = new Color (0, 0, 0, 1);
-			c.MoveTo (0, 0);
-			c.LineTo (320, 240);
-			c.LineWidth = 4;
-			c.Stroke ();
-			
-			surface.WriteToPng ("memgraph.png");
-			surface.Finish ();
 		}
 		
 		public void CollectStats (OutfileReader reader, string data)
@@ -99,7 +82,10 @@ namespace HeapBuddy {
 		public void DisplayStats (LongStats stats)
 		{
 			try {
-				Console.WriteLine (" Mix: {0}\n Max: {1}\nMean: {2}", stats.Min, stats.Max, stats.Mean);
+				Console.WriteLine (" Min: {0}\n Max: {1}\nMean: {2}", stats.Min, stats.Max, stats.Mean);
 			} catch { };
 		}
+	
+	}
+	
 }
