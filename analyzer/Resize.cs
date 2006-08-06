@@ -30,7 +30,7 @@ namespace HeapBuddy {
 		// The GC Generation during which the resize happened
 		public int Generation;
 
-		private long time_t;
+		public long time_t;
 		public DateTime Timestamp;
 
 		public long PreviousSize;

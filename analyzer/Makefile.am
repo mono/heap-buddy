@@ -1,6 +1,6 @@
 
 CSC = mcs -debug
-CSFLAGS = -target:exe
+CSFLAGS = -target:exe -r:Mono.Cairo
 
 TARGET = HeapBuddy.exe
 WRAPPER = heap-buddy

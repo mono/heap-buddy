@@ -8,7 +8,8 @@ namespace HeapBuddy {
 		public uint      Bytes;
 		public Hashtable MethodHash;
 		public ArrayList Methods;
-		public string    Name;		
+		public string    Name;
+		public bool      isSorted;	
 
 		public MemZone ()
 		{
@@ -16,6 +17,7 @@ namespace HeapBuddy {
 			Methods     = new ArrayList ();
 			Allocations = 0;
 			Bytes       = 0;
+			isSorted    = false;
 		}
 		
 		public MemZone (string n)
@@ -25,6 +27,7 @@ namespace HeapBuddy {
 			Allocations = 0;
 			Bytes       = 0;
 			Name        = n;
+			isSorted    = false;
 		}
 		
 		public bool Contains (string n) {
@@ -51,6 +54,8 @@ namespace HeapBuddy {
 
 				Methods.Add (value);
 				MethodHash.Add (n, value);
+				
+				isSorted = false;
 			}
 		}
 		
@@ -64,6 +69,9 @@ namespace HeapBuddy {
 		}
 		
 		public void Sort () {
+			if (isSorted)
+				return;
+		
 			IComparer ic = new MemZoneComparer ();
 			
 			foreach (MemZone mz in Methods)

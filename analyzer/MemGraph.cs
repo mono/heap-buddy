@@ -1,106 +1,144 @@
 using System;
 using System.Collections;
+using Cairo;
 
 namespace HeapBuddy {
 	
-	public class LongStats {
-		private ArrayList Data;
-		private long      Total;
-		private bool      isSorted;
-		
-		public LongStats() {
-			Data     = new ArrayList ();
-			Total    = 0;
-			isSorted = false;
-		}
-		
-		public void Add (long n) {
-			Data.Add (n);
-			isSorted = false;
-			Total += n;
-		}
-		
-		public long Min {
-			get {
-			
-				if (Data.Count <= 0)
-					throw new ArgumentException ();
-				
-				if (!isSorted) {
-					Data.Sort ();
-					isSorted = true;
-				}
-				
-				return (long)Data [0];
-			}
-		}
-		
-		public long Max {
-			get {
-				
-				if (Data.Count <= 0)
-					throw new ArgumentException ();
-					
-				if	(!isSorted) {
-					Data.Sort ();
-					isSorted = true;
-				}
-				
-				return (long)Data [Data.Count - 1];
-			}		
-		}
-		
-		public long Mean {
-			get {
-			
-				if (Data.Count <= 0)
-					throw new ArgumentException ();
-				
-				return (long)((float)Total / (float)Data.Count);
-			}
-		}
-	}
+	public class MemGraph {
 	
-	public class Memgraph {
-		private LongStats Stats;
+		private class MemStamp {
+			public long LiveBytes;
+			public long TimeT;
+			
+			public MemStamp (long bytes, long time) {
+				LiveBytes = bytes;
+				TimeT = time;
+			}
+		}
+		
+		private class MemStampComparer : IComparer {
+			int IComparer.Compare (Object x, Object y) {
+				MemStamp a = (MemStamp)x;
+				MemStamp b = (MemStamp)y;
+			
+				if (a.TimeT > b.TimeT) return 1;
+				else if (a.TimeT < b.TimeT) return -1;
+				else return 0;
+			}
+		}
+		
+		private ArrayList Stamps;
 
-		public Memgraph (OutfileReader reader, string data)
-		{
-			Stats = new LongStats ();
+		public MemGraph (OutfileReader reader)
+		{	
+			Stamps = new ArrayList ();
+			CollectStamps (reader);
+			Sort ();
 			
-			CollectStats (reader, data);
-			DisplayStats (Stats);
+			// If we don't have any data, bail
+			if (Stamps.Count <= 0)
+				return;
 			
-			ImageSurface surface = new ImageSurface (Format.RGB24, 320, 240);
+			const int SurfaceWidth = 640;
+			const int SurfaceHeight = 480;
+			
+			// Generate our Cairo surface
+			ImageSurface surface = new ImageSurface (Format.RGB24, SurfaceWidth, SurfaceHeight);
 			Context c = new Context (surface);
 			
 			c.Color = new Color (1, 1, 1, 1);
 			c.Paint ();
 			
+			// Calculate our bounds
+			long domain = ((MemStamp)Stamps [Stamps.Count - 1]).TimeT - ((MemStamp)Stamps [0]).TimeT;
+			if (domain == 0)
+				return;
+				
+			long lowBytes = ((MemStamp)Stamps [0]).LiveBytes;
+			long highBytes = 0;
+			
+			foreach (MemStamp ms in Stamps) {
+				if (ms.LiveBytes < lowBytes)
+					lowBytes = ms.LiveBytes;
+				if (ms.LiveBytes > highBytes)
+					highBytes = ms.LiveBytes;
+			}
+				
+			const double GraphWidth = 570;
+			const double GraphHeight = 420;
+			const double GraphOriginX = SurfaceWidth - GraphWidth - 15;
+			const double GraphOriginY = 15;
+				
+			// We need to scale this puppy...
+			double xscale = (double)domain / GraphWidth;
+			double yrange = highBytes - lowBytes;
+			double yscale = yrange / GraphHeight;
+			
+			//Matrix m = c.Matrix;
+			//m.Scale (xscale, yscale);
+			//c.Matrix = m;
+			
 			c.Color = new Color (0, 0, 0, 1);
-			c.MoveTo (0, 0);
-			c.LineTo (320, 240);
+			
+			c.LineWidth = 2;			
+			c.Rectangle (GraphOriginX, GraphOriginY, GraphWidth, GraphHeight);
+			
+			c.MoveTo (GraphOriginX, GraphOriginY + GraphHeight);
+			long lowTime = ((MemStamp)Stamps [0]).TimeT;
+			foreach (MemStamp ms in Stamps) {
+				c.LineTo (GraphOriginX + (double)(ms.TimeT - lowTime) / xscale, GraphOriginY + GraphHeight - (double)(ms.LiveBytes - lowBytes) / yscale);
+			}
 			c.LineWidth = 4;
 			c.Stroke ();
 			
+			// Draw the Memory Text
+			// Tick Marks...
+			c.FontSize = 15;
+
+			for (int i = 0; i <= 10; i++) {
+				c.MoveTo (GraphOriginX - 5, GraphOriginY + GraphHeight - i * GraphHeight / 10);
+				c.LineTo (GraphOriginX, GraphOriginY + GraphHeight - i * GraphHeight / 10);
+				c.Stroke ();
+
+				string s = Util.PrettySize (lowBytes + (i * (long)yrange / 10));
+				TextExtents e = c.TextExtents (s);
+				c.MoveTo (GraphOriginX - e.Width - 10, GraphOriginY + GraphHeight - i * GraphHeight / 10 + 0.5 * e.Height);
+				c.ShowText (s);
+			}
+			
+			// Draw the time Text
+			for (int i = 0; i < 15; i++) {
+				c.MoveTo (GraphOriginX + i * GraphWidth / 10, GraphOriginY + GraphHeight);
+				c.LineTo (GraphOriginX + i * GraphWidth / 10, GraphOriginY + GraphHeight + 5);
+				c.Stroke ();
+				
+				string s = Util.PrettyTime (i * domain / 10);
+				TextExtents e = c.TextExtents (s);
+				c.MoveTo (GraphOriginX + i * GraphWidth / 10 - 0.5 * e.Width, GraphOriginY + GraphHeight + 10 + e.Height);
+				c.ShowText (s);
+			}
+				
 			surface.WriteToPng ("memgraph.png");
 			surface.Finish ();
 		}
 		
-		public void CollectStats (OutfileReader reader, string data)
+		private void CollectStamps (OutfileReader reader)
 		{
 			foreach (Gc gc in reader.Gcs) {
-				Stats.Add (gc.PostGcLiveBytes);
+				Stamps.Add (new MemStamp (gc.PostGcLiveBytes, gc.TimeT));
+			}
+			
+			foreach (Resize r in reader.Resizes) {
+				Stamps.Add (new MemStamp (r.TotalLiveBytes, r.time_t));
 			}
 		}
-		
-		public void DisplayStats (LongStats stats)
+
+		private void Sort ()
 		{
-			try {
-				Console.WriteLine (" Min: {0}\n Max: {1}\nMean: {2}", stats.Min, stats.Max, stats.Mean);
-			} catch { };
+			IComparer ic = new MemStampComparer ();
+			Stamps.Sort (ic);
 		}
-	
+			
 	}
 	
 }

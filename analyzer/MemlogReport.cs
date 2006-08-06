@@ -280,7 +280,7 @@ namespace HeapBuddy {
 						
 					
 					case "graph":
-						Memgraph graph = new Memgraph (reader, "string");
+						MemGraph graph = new MemGraph (reader);
 						
 						break;
 					

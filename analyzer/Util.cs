@@ -57,6 +57,17 @@ namespace HeapBuddy {
 
 		/////////////////////////////////////////////////////////////////////////////////////
 
+		static public string PrettyTime (long seconds)
+		{
+			if (seconds < 60)
+				return String.Format ("{0}s", seconds);
+			
+			if (seconds < 3600)
+				return String.Format ("{0:0.0}m", (float)seconds / 60.0);
+			
+			return String.Format ("{0:0.0}h", (float)seconds / 3600.0);		
+		}
+
 		static public string PrettySize (uint num_bytes)
 		{
 			if (num_bytes < 1024)
