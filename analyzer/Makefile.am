@@ -9,7 +9,8 @@ REPORT_CSFILES =		\
 	BacktracesReport.cs	\
 	HistoryReport.cs	\
 	SummaryReport.cs	\
-	TypesReport.cs
+	TypesReport.cs		\
+	MemlogReport.cs
 
 CSFILES = 			\
 	HeapBuddy.cs		\
@@ -23,6 +24,10 @@ CSFILES = 			\
 	Resize.cs		\
 	OutfileReader.cs	\
 	Report.cs		\
+	MemZone.cs		\
+	TypeLog.cs		\
+	MethodLog.cs		\
+	MemGraph.cs		\
 	$(REPORT_CSFILES)
 
 bin_SCRIPTS =			\

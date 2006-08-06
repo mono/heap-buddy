@@ -70,6 +70,21 @@ namespace HeapBuddy {
 			
 			CollectStats (reader, data);
 			DisplayStats (Stats);
+			
+			ImageSurface surface = new ImageSurface (Format.RGB24, 320, 240);
+			Context c = new Context (surface);
+			
+			c.Color = new Color (1, 1, 1, 1);
+			c.Paint ();
+			
+			c.Color = new Color (0, 0, 0, 1);
+			c.MoveTo (0, 0);
+			c.LineTo (320, 240);
+			c.LineWidth = 4;
+			c.Stroke ();
+			
+			surface.WriteToPng ("memgraph.png");
+			surface.Finish ();
 		}
 		
 		public void CollectStats (OutfileReader reader, string data)
