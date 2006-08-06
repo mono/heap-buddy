@@ -1,82 +1,92 @@
 accountant.lo accountant.o: accountant.c accountant.h \
-  /usr/include/glib-2.0/glib.h /usr/include/glib-2.0/glib/galloca.h \
-  /usr/include/glib-2.0/glib/gtypes.h \
-  /usr/lib/glib-2.0/include/glibconfig.h \
-  /usr/include/glib-2.0/glib/gmacros.h \
-  /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include/stddef.h \
-  /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include/limits.h \
-  /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include/syslimits.h \
+  /opt/gnome/include/glib-2.0/glib.h \
+  /opt/gnome/include/glib-2.0/glib/galloca.h \
+  /opt/gnome/include/glib-2.0/glib/gtypes.h \
+  /opt/gnome/lib/glib-2.0/include/glibconfig.h \
+  /opt/gnome/include/glib-2.0/glib/gmacros.h \
+  /usr/lib/gcc/i586-suse-linux/4.1.0/include/stddef.h \
+  /usr/lib/gcc/i586-suse-linux/4.1.0/include/limits.h \
+  /usr/lib/gcc/i586-suse-linux/4.1.0/include/syslimits.h \
   /usr/include/limits.h /usr/include/features.h /usr/include/sys/cdefs.h \
   /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
   /usr/include/gnu/stubs-32.h /usr/include/bits/posix1_lim.h \
   /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
   /usr/include/bits/posix2_lim.h \
-  /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include/float.h \
-  /usr/include/glib-2.0/glib/garray.h \
-  /usr/include/glib-2.0/glib/gasyncqueue.h \
-  /usr/include/glib-2.0/glib/gthread.h \
-  /usr/include/glib-2.0/glib/gerror.h /usr/include/glib-2.0/glib/gquark.h \
-  /usr/include/glib-2.0/glib/gatomic.h \
-  /usr/include/glib-2.0/glib/gbacktrace.h \
-  /usr/include/glib-2.0/glib/gcache.h /usr/include/glib-2.0/glib/glist.h \
-  /usr/include/glib-2.0/glib/gmem.h /usr/include/glib-2.0/glib/gslice.h \
-  /usr/include/glib-2.0/glib/gcompletion.h \
-  /usr/include/glib-2.0/glib/gconvert.h \
-  /usr/include/glib-2.0/glib/gdataset.h \
-  /usr/include/glib-2.0/glib/gdate.h /usr/include/time.h \
-  /usr/include/bits/time.h /usr/include/bits/types.h \
-  /usr/include/bits/typesizes.h /usr/include/glib-2.0/glib/gdir.h \
-  /usr/include/glib-2.0/glib/gfileutils.h \
-  /usr/include/glib-2.0/glib/ghash.h /usr/include/glib-2.0/glib/ghook.h \
-  /usr/include/glib-2.0/glib/giochannel.h \
-  /usr/include/glib-2.0/glib/gmain.h /usr/include/glib-2.0/glib/gslist.h \
-  /usr/include/glib-2.0/glib/gstring.h \
-  /usr/include/glib-2.0/glib/gunicode.h \
-  /usr/include/glib-2.0/glib/gutils.h \
-  /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include/stdarg.h \
-  /usr/include/glib-2.0/glib/gkeyfile.h \
-  /usr/include/glib-2.0/glib/gmappedfile.h \
-  /usr/include/glib-2.0/glib/gmarkup.h \
-  /usr/include/glib-2.0/glib/gmessages.h \
-  /usr/include/glib-2.0/glib/gnode.h /usr/include/glib-2.0/glib/goption.h \
-  /usr/include/glib-2.0/glib/gpattern.h \
-  /usr/include/glib-2.0/glib/gprimes.h \
-  /usr/include/glib-2.0/glib/gqsort.h /usr/include/glib-2.0/glib/gqueue.h \
-  /usr/include/glib-2.0/glib/grand.h /usr/include/glib-2.0/glib/grel.h \
-  /usr/include/glib-2.0/glib/gscanner.h \
-  /usr/include/glib-2.0/glib/gshell.h /usr/include/glib-2.0/glib/gspawn.h \
-  /usr/include/glib-2.0/glib/gstrfuncs.h \
-  /usr/include/glib-2.0/glib/gthreadpool.h \
-  /usr/include/glib-2.0/glib/gtimer.h /usr/include/glib-2.0/glib/gtree.h \
+  /usr/lib/gcc/i586-suse-linux/4.1.0/include/float.h \
+  /opt/gnome/include/glib-2.0/glib/garray.h \
+  /opt/gnome/include/glib-2.0/glib/gasyncqueue.h \
+  /opt/gnome/include/glib-2.0/glib/gthread.h \
+  /opt/gnome/include/glib-2.0/glib/gerror.h \
+  /opt/gnome/include/glib-2.0/glib/gquark.h \
+  /opt/gnome/include/glib-2.0/glib/gatomic.h \
+  /opt/gnome/include/glib-2.0/glib/gbacktrace.h \
+  /opt/gnome/include/glib-2.0/glib/gcache.h \
+  /opt/gnome/include/glib-2.0/glib/glist.h \
+  /opt/gnome/include/glib-2.0/glib/gmem.h \
+  /opt/gnome/include/glib-2.0/glib/gcompletion.h \
+  /opt/gnome/include/glib-2.0/glib/gconvert.h \
+  /opt/gnome/include/glib-2.0/glib/gdataset.h \
+  /opt/gnome/include/glib-2.0/glib/gdate.h \
+  /opt/gnome/include/glib-2.0/glib/gdir.h \
+  /opt/gnome/include/glib-2.0/glib/gfileutils.h \
+  /opt/gnome/include/glib-2.0/glib/ghash.h \
+  /opt/gnome/include/glib-2.0/glib/ghook.h \
+  /opt/gnome/include/glib-2.0/glib/giochannel.h \
+  /opt/gnome/include/glib-2.0/glib/gmain.h \
+  /opt/gnome/include/glib-2.0/glib/gslist.h \
+  /opt/gnome/include/glib-2.0/glib/gstring.h \
+  /opt/gnome/include/glib-2.0/glib/gunicode.h \
+  /opt/gnome/include/glib-2.0/glib/gutils.h \
+  /usr/lib/gcc/i586-suse-linux/4.1.0/include/stdarg.h \
+  /opt/gnome/include/glib-2.0/glib/gkeyfile.h \
+  /opt/gnome/include/glib-2.0/glib/gmappedfile.h \
+  /opt/gnome/include/glib-2.0/glib/gmarkup.h \
+  /opt/gnome/include/glib-2.0/glib/gmessages.h \
+  /opt/gnome/include/glib-2.0/glib/gnode.h \
+  /opt/gnome/include/glib-2.0/glib/goption.h \
+  /opt/gnome/include/glib-2.0/glib/gpattern.h \
+  /opt/gnome/include/glib-2.0/glib/gprimes.h \
+  /opt/gnome/include/glib-2.0/glib/gqsort.h \
+  /opt/gnome/include/glib-2.0/glib/gqueue.h \
+  /opt/gnome/include/glib-2.0/glib/grand.h \
+  /opt/gnome/include/glib-2.0/glib/grel.h \
+  /opt/gnome/include/glib-2.0/glib/gscanner.h \
+  /opt/gnome/include/glib-2.0/glib/gshell.h \
+  /opt/gnome/include/glib-2.0/glib/gspawn.h \
+  /opt/gnome/include/glib-2.0/glib/gstrfuncs.h \
+  /opt/gnome/include/glib-2.0/glib/gthreadpool.h \
+  /opt/gnome/include/glib-2.0/glib/gtimer.h \
+  /opt/gnome/include/glib-2.0/glib/gtree.h \
   /usr/include/mono/metadata/class.h \
   /usr/include/mono/metadata/metadata.h /usr/include/mono/metadata/blob.h \
   /usr/include/mono/metadata/row-indexes.h \
   /usr/include/mono/metadata/image.h /usr/include/stdio.h \
+  /usr/include/bits/types.h /usr/include/bits/typesizes.h \
   /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
   /usr/include/bits/wchar.h /usr/include/gconv.h \
   /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h \
-  /usr/include/bits/stdio.h /usr/include/glib-2.0/gmodule.h \
+  /usr/include/bits/stdio.h /opt/gnome/include/glib-2.0/gmodule.h \
   /usr/include/mono/metadata/loader.h /usr/include/mono/metadata/object.h \
   backtrace.h /usr/include/mono/metadata/debug-helpers.h \
   /usr/include/mono/metadata/mono-gc.h
 
 accountant.h:
 
-/usr/include/glib-2.0/glib.h:
+/opt/gnome/include/glib-2.0/glib.h:
 
-/usr/include/glib-2.0/glib/galloca.h:
+/opt/gnome/include/glib-2.0/glib/galloca.h:
 
-/usr/include/glib-2.0/glib/gtypes.h:
+/opt/gnome/include/glib-2.0/glib/gtypes.h:
 
-/usr/lib/glib-2.0/include/glibconfig.h:
+/opt/gnome/lib/glib-2.0/include/glibconfig.h:
 
-/usr/include/glib-2.0/glib/gmacros.h:
+/opt/gnome/include/glib-2.0/glib/gmacros.h:
 
-/usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include/stddef.h:
+/usr/lib/gcc/i586-suse-linux/4.1.0/include/stddef.h:
 
-/usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include/limits.h:
+/usr/lib/gcc/i586-suse-linux/4.1.0/include/limits.h:
 
-/usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include/syslimits.h:
+/usr/lib/gcc/i586-suse-linux/4.1.0/include/syslimits.h:
 
 /usr/include/limits.h:
 
@@ -98,105 +108,95 @@ accountant.h:
 
 /usr/include/bits/posix2_lim.h:
 
-/usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include/float.h:
+/usr/lib/gcc/i586-suse-linux/4.1.0/include/float.h:
 
-/usr/include/glib-2.0/glib/garray.h:
+/opt/gnome/include/glib-2.0/glib/garray.h:
 
-/usr/include/glib-2.0/glib/gasyncqueue.h:
+/opt/gnome/include/glib-2.0/glib/gasyncqueue.h:
 
-/usr/include/glib-2.0/glib/gthread.h:
+/opt/gnome/include/glib-2.0/glib/gthread.h:
 
-/usr/include/glib-2.0/glib/gerror.h:
+/opt/gnome/include/glib-2.0/glib/gerror.h:
 
-/usr/include/glib-2.0/glib/gquark.h:
+/opt/gnome/include/glib-2.0/glib/gquark.h:
 
-/usr/include/glib-2.0/glib/gatomic.h:
+/opt/gnome/include/glib-2.0/glib/gatomic.h:
 
-/usr/include/glib-2.0/glib/gbacktrace.h:
+/opt/gnome/include/glib-2.0/glib/gbacktrace.h:
 
-/usr/include/glib-2.0/glib/gcache.h:
+/opt/gnome/include/glib-2.0/glib/gcache.h:
 
-/usr/include/glib-2.0/glib/glist.h:
+/opt/gnome/include/glib-2.0/glib/glist.h:
 
-/usr/include/glib-2.0/glib/gmem.h:
+/opt/gnome/include/glib-2.0/glib/gmem.h:
 
-/usr/include/glib-2.0/glib/gslice.h:
+/opt/gnome/include/glib-2.0/glib/gcompletion.h:
 
-/usr/include/glib-2.0/glib/gcompletion.h:
+/opt/gnome/include/glib-2.0/glib/gconvert.h:
 
-/usr/include/glib-2.0/glib/gconvert.h:
+/opt/gnome/include/glib-2.0/glib/gdataset.h:
 
-/usr/include/glib-2.0/glib/gdataset.h:
+/opt/gnome/include/glib-2.0/glib/gdate.h:
 
-/usr/include/glib-2.0/glib/gdate.h:
+/opt/gnome/include/glib-2.0/glib/gdir.h:
 
-/usr/include/time.h:
+/opt/gnome/include/glib-2.0/glib/gfileutils.h:
 
-/usr/include/bits/time.h:
+/opt/gnome/include/glib-2.0/glib/ghash.h:
 
-/usr/include/bits/types.h:
+/opt/gnome/include/glib-2.0/glib/ghook.h:
 
-/usr/include/bits/typesizes.h:
+/opt/gnome/include/glib-2.0/glib/giochannel.h:
 
-/usr/include/glib-2.0/glib/gdir.h:
+/opt/gnome/include/glib-2.0/glib/gmain.h:
 
-/usr/include/glib-2.0/glib/gfileutils.h:
+/opt/gnome/include/glib-2.0/glib/gslist.h:
 
-/usr/include/glib-2.0/glib/ghash.h:
+/opt/gnome/include/glib-2.0/glib/gstring.h:
 
-/usr/include/glib-2.0/glib/ghook.h:
+/opt/gnome/include/glib-2.0/glib/gunicode.h:
 
-/usr/include/glib-2.0/glib/giochannel.h:
+/opt/gnome/include/glib-2.0/glib/gutils.h:
 
-/usr/include/glib-2.0/glib/gmain.h:
+/usr/lib/gcc/i586-suse-linux/4.1.0/include/stdarg.h:
 
-/usr/include/glib-2.0/glib/gslist.h:
+/opt/gnome/include/glib-2.0/glib/gkeyfile.h:
 
-/usr/include/glib-2.0/glib/gstring.h:
+/opt/gnome/include/glib-2.0/glib/gmappedfile.h:
 
-/usr/include/glib-2.0/glib/gunicode.h:
+/opt/gnome/include/glib-2.0/glib/gmarkup.h:
 
-/usr/include/glib-2.0/glib/gutils.h:
+/opt/gnome/include/glib-2.0/glib/gmessages.h:
 
-/usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include/stdarg.h:
+/opt/gnome/include/glib-2.0/glib/gnode.h:
 
-/usr/include/glib-2.0/glib/gkeyfile.h:
+/opt/gnome/include/glib-2.0/glib/goption.h:
 
-/usr/include/glib-2.0/glib/gmappedfile.h:
+/opt/gnome/include/glib-2.0/glib/gpattern.h:
 
-/usr/include/glib-2.0/glib/gmarkup.h:
+/opt/gnome/include/glib-2.0/glib/gprimes.h:
 
-/usr/include/glib-2.0/glib/gmessages.h:
+/opt/gnome/include/glib-2.0/glib/gqsort.h:
 
-/usr/include/glib-2.0/glib/gnode.h:
+/opt/gnome/include/glib-2.0/glib/gqueue.h:
 
-/usr/include/glib-2.0/glib/goption.h:
+/opt/gnome/include/glib-2.0/glib/grand.h:
 
-/usr/include/glib-2.0/glib/gpattern.h:
+/opt/gnome/include/glib-2.0/glib/grel.h:
 
-/usr/include/glib-2.0/glib/gprimes.h:
+/opt/gnome/include/glib-2.0/glib/gscanner.h:
 
-/usr/include/glib-2.0/glib/gqsort.h:
+/opt/gnome/include/glib-2.0/glib/gshell.h:
 
-/usr/include/glib-2.0/glib/gqueue.h:
+/opt/gnome/include/glib-2.0/glib/gspawn.h:
 
-/usr/include/glib-2.0/glib/grand.h:
+/opt/gnome/include/glib-2.0/glib/gstrfuncs.h:
 
-/usr/include/glib-2.0/glib/grel.h:
+/opt/gnome/include/glib-2.0/glib/gthreadpool.h:
 
-/usr/include/glib-2.0/glib/gscanner.h:
+/opt/gnome/include/glib-2.0/glib/gtimer.h:
 
-/usr/include/glib-2.0/glib/gshell.h:
-
-/usr/include/glib-2.0/glib/gspawn.h:
-
-/usr/include/glib-2.0/glib/gstrfuncs.h:
-
-/usr/include/glib-2.0/glib/gthreadpool.h:
-
-/usr/include/glib-2.0/glib/gtimer.h:
-
-/usr/include/glib-2.0/glib/gtree.h:
+/opt/gnome/include/glib-2.0/glib/gtree.h:
 
 /usr/include/mono/metadata/class.h:
 
@@ -209,6 +209,10 @@ accountant.h:
 /usr/include/mono/metadata/image.h:
 
 /usr/include/stdio.h:
+
+/usr/include/bits/types.h:
+
+/usr/include/bits/typesizes.h:
 
 /usr/include/libio.h:
 
@@ -226,7 +230,7 @@ accountant.h:
 
 /usr/include/bits/stdio.h:
 
-/usr/include/glib-2.0/gmodule.h:
+/opt/gnome/include/glib-2.0/gmodule.h:
 
 /usr/include/mono/metadata/loader.h:
 
