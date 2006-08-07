@@ -29,7 +29,7 @@ namespace HeapBuddy {
 		
 		private ArrayList Stamps;
 
-		public MemGraph (OutfileReader reader)
+		public MemGraph (OutfileReader reader, string filename)
 		{	
 			Stamps = new ArrayList ();
 			CollectStamps (reader);
@@ -88,12 +88,13 @@ namespace HeapBuddy {
 			foreach (MemStamp ms in Stamps) {
 				c.LineTo (GraphOriginX + (double)(ms.TimeT - lowTime) / xscale, GraphOriginY + GraphHeight - (double)(ms.LiveBytes - lowBytes) / yscale);
 			}
-			c.LineWidth = 4;
+			c.LineWidth = 1.5;
 			c.Stroke ();
 			
 			// Draw the Memory Text
 			// Tick Marks...
 			c.FontSize = 15;
+			c.LineWidth = 1;
 
 			for (int i = 0; i <= 10; i++) {
 				c.MoveTo (GraphOriginX - 5, GraphOriginY + GraphHeight - i * GraphHeight / 10);
@@ -118,7 +119,10 @@ namespace HeapBuddy {
 				c.ShowText (s);
 			}
 				
-			surface.WriteToPng ("memgraph.png");
+			if (filename == null)
+				filename = "memlog.png";
+				
+			surface.WriteToPng (filename);
 			surface.Finish ();
 		}
 		

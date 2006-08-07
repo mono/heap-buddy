@@ -203,6 +203,7 @@ namespace HeapBuddy {
 			Console.WriteLine ("Memlog commands:");
 			Console.WriteLine ("  list: list the items in the current path");
 			Console.WriteLine ("  rows [n]: specify how many rows to print - zero for all");
+			Console.WriteLine ("  graph [filename]: generate graph of memory usage (memlog.png default)");
 			Console.WriteLine ("  help: show this screen");
 			Console.WriteLine ("  quit: quit");
 		}
@@ -280,7 +281,11 @@ namespace HeapBuddy {
 						
 					
 					case "graph":
-						MemGraph graph = new MemGraph (reader);
+						string filename = null;
+						if (i + 1 < cmds.Length)
+							filename = cmds[++i];
+							
+						MemGraph graph = new MemGraph (reader, filename);
 						
 						break;
 					
