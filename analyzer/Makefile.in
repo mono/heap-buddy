@@ -153,7 +153,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 CSC = mcs -debug
-CSFLAGS = -target:exe -r:Mono.Cairo
+CSFLAGS = -target:exe -r:Mono.Cairo -pkg:gtk-sharp -r:System.Drawing.dll 
 TARGET = HeapBuddy.exe
 WRAPPER = heap-buddy
 REPORT_CSFILES = \
@@ -179,6 +179,7 @@ CSFILES = \
 	TypeLog.cs		\
 	MethodLog.cs		\
 	MemGraph.cs		\
+	Graphics.cs		\
 	$(REPORT_CSFILES)
 
 bin_SCRIPTS = \

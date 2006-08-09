@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Cairo;
+using Gtk;
 
 namespace HeapBuddy {
 	
@@ -17,7 +18,7 @@ namespace HeapBuddy {
 		}
 		
 		private class MemStampComparer : IComparer {
-			int IComparer.Compare (Object x, Object y) {
+			int IComparer.Compare (System.Object x, System.Object y) {
 				MemStamp a = (MemStamp)x;
 				MemStamp b = (MemStamp)y;
 			
@@ -28,6 +29,7 @@ namespace HeapBuddy {
 		}
 		
 		private ArrayList Stamps;
+		static DrawingArea da;
 
 		public MemGraph (OutfileReader reader, string filename)
 		{	
@@ -118,6 +120,18 @@ namespace HeapBuddy {
 				c.MoveTo (GraphOriginX + i * GraphWidth / 10 - 0.5 * e.Width, GraphOriginY + GraphHeight + 10 + e.Height);
 				c.ShowText (s);
 			}
+			
+			Application.Init ();
+			
+			Window win = new Window ("Heap-Buddy");
+			win.SetDefaultSize (640, 480);
+			
+			da = new CairoGraph ();
+			win.Add (da);
+			
+			win.ShowAll ();
+			
+			Application.Run ();			
 				
 			if (filename == null)
 				filename = "memlog.png";
@@ -125,6 +139,8 @@ namespace HeapBuddy {
 			surface.WriteToPng (filename);
 			surface.Finish ();
 		}
+		
+
 		
 		private void CollectStamps (OutfileReader reader)
 		{
@@ -145,4 +161,26 @@ namespace HeapBuddy {
 			
 	}
 	
+}
+
+public class CairoGraph : DrawingArea
+{
+	protected override bool OnExposeEvent (Gdk.EventExpose args)
+	{
+		Gdk.Window win = args.Window;
+		
+		Cairo.Context g = Gdk.Context.CreateDrawable (win);
+	
+		g.ResetClip ();
+		g.Color = new Color (0, .6, .6, 1);
+		g.Paint ();
+		
+		g.Color = new Color (1, 1, 1, 1);
+		g.MoveTo (0, 0);
+		g.LineTo (500, 500);
+		g.LineWidth = 4;
+		g.Stroke ();
+		
+		return true;
+	}
 }

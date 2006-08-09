@@ -1,6 +1,6 @@
 
 CSC = mcs -debug
-CSFLAGS = -target:exe -r:Mono.Cairo
+CSFLAGS = -target:exe -r:Mono.Cairo -pkg:gtk-sharp -r:System.Drawing.dll 
 
 TARGET = HeapBuddy.exe
 WRAPPER = heap-buddy
@@ -28,6 +28,7 @@ CSFILES = 			\
 	TypeLog.cs		\
 	MethodLog.cs		\
 	MemGraph.cs		\
+	Graphics.cs		\
 	$(REPORT_CSFILES)
 
 bin_SCRIPTS =			\
