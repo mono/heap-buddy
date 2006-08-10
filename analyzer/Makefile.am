@@ -1,6 +1,6 @@
 
 CSC = mcs -debug
-CSFLAGS = -target:exe -r:Mono.Cairo -pkg:gtk-sharp -r:System.Drawing.dll 
+CSFLAGS = -target:exe -r:Mono.Cairo -pkg:gtk-sharp-2.0 -r:System.Drawing.dll 
 
 TARGET = HeapBuddy.exe
 WRAPPER = heap-buddy
@@ -10,7 +10,8 @@ REPORT_CSFILES =		\
 	HistoryReport.cs	\
 	SummaryReport.cs	\
 	TypesReport.cs		\
-	MemlogReport.cs
+	MemlogReport.cs		\
+	GraphReport.cs
 
 CSFILES = 			\
 	HeapBuddy.cs		\
@@ -27,7 +28,6 @@ CSFILES = 			\
 	MemZone.cs		\
 	TypeLog.cs		\
 	MethodLog.cs		\
-	MemGraph.cs		\
 	Graphics.cs		\
 	$(REPORT_CSFILES)
 
