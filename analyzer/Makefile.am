@@ -1,6 +1,6 @@
 
 CSC = mcs -debug
-CSFLAGS = -target:exe -r:Mono.Cairo -pkg:gtk-sharp-2.0 -r:System.Drawing.dll 
+CSFLAGS = -target:exe -r:Mono.Cairo -pkg:gtk-sharp-2.0 -r:System.Drawing.dll -pkg:glade-sharp-2.0 -resource:memgraph.glade
 
 TARGET = HeapBuddy.exe
 WRAPPER = heap-buddy

@@ -29,6 +29,7 @@ using System;
 using System.Collections;
 using Cairo;
 using Gtk;
+using Glade;
 
 namespace HeapBuddy {
 
@@ -40,8 +41,10 @@ namespace HeapBuddy {
 		public Gdk.Window Window;
 		
 		public OutfileReader Reader;
-		
 		public ArrayList Stamps;
+		
+		[Widget] VBox vbox1;
+		[Widget] Gtk.Window MainWindow;
 		
 		override public void Run (OutfileReader reader, string [] args)
 		{
@@ -49,32 +52,19 @@ namespace HeapBuddy {
 			Stamps = new ArrayList ();
 			CollectStamps ();
 			Sort ();
-		
+					
 			Application.Init ();
 			
-			Window MainWindow = new Window ("Heap-Buddy");
-			MainWindow.SetDefaultSize (640, 480);
-			MainWindow.DeleteEvent += QuitApplication;
-			
-			VPaned box1 = new VPaned ();
-			MainWindow.Add (box1);
-			
-			MenuBar MainMenu = new MenuBar ();
-			Menu FileMenu = new Menu ();
-			MenuItem ExitItem = new MenuItem ("E_xit");
-			ExitItem.Activated += QuitApplication;
-			FileMenu.Append (ExitItem);
-			MenuItem FileItem = new MenuItem ("_File");
-			FileItem.Submenu = FileMenu;
-			MainMenu.Append (FileItem);	
-			box1.Add (MainMenu);
-			
+			Glade.XML gxml = new Glade.XML (null, "memgraph.glade", "MainWindow", null);
+			gxml.Autoconnect (this);
+
 			CairoGraph cg = new CairoGraph (this);
-			box1.Add (cg);
+			vbox1.Add (cg);
 			
-			box1.ResizeChildren ();
-			
-			MainWindow.ShowAll ();			
+			MainWindow.ShowAll ();
+			MainWindow.Resize (640, 480);
+			MainWindow.DeleteEvent += QuitApplication;
+						
 			Application.Run ();
 		}
 		
@@ -117,10 +107,18 @@ namespace HeapBuddy {
 			//*********Scaling
 			
 			// How much room for the labels?
-			c.FontSize = 15;
+			c.FontSize = 15 * w / 640;
+			if (15 * w / 640 > 20)
+				c.FontSize = 20;
+
 			string label = Util.PrettySize (HighBytes);
+			double GOY = h - c.TextExtents (label).Height - 30;
+			
+			c.FontSize = 15 * h / 480;
+			if (15 * h / 480 > 20)
+				c.FontSize = 20;
+				
 			double GOX = c.TextExtents (label).Width + 15;
-			double GOY = h - 30;
 			double GW = w - GOX - 10;
 			double GH = GOY - 10;
 			
@@ -130,20 +128,55 @@ namespace HeapBuddy {
 			
 			// Border
 			c.Color = new Color (0, 0, 0, 1);
-			c.LineWidth = 5;
+			c.LineWidth = 2;
 			c.Rectangle (GOX, GOY, GW, -GH);
+			c.Stroke ();
 			
 			// Memory line
 			c.MoveTo (GOX, GOY);
 			long LowTime = ((MemStamp)Stamps [0]).TimeT;
-			foreach (MemStamp ms in Stamps) {
-				c.LineTo (GOX + (double)(ms.TimeT - LowTime) / xscale, GOY - (double)(ms.LiveBytes - LowBytes) / yscale);
-			}
+			
+			Color Black       = new Color (0, 0, 0, 1);
+			Color GcColor     = new Color (0, 0, 1, 1);
+			Color ResizeColor = new Color (1, 0, 0, 1);
+			
+			double oldX = GOX;
+			double oldY = GOY;
+			double newX, newY;
+			
 			c.LineWidth = 1.5;
-			c.Stroke ();
+			foreach (MemStamp ms in Stamps) {
+				switch (ms.Op) {
+					case MemAction.Gc:
+						c.Color = GcColor;
+						break;
+						
+					case MemAction.Resize:
+						c.Color = ResizeColor;
+						break;
+						
+					default:
+						c.Color = Black;
+						break;
+				}
+				
+				newX = GOX + (double)(ms.TimeT - LowTime) / xscale;
+				newY = GOY - (double)(ms.LiveBytes - LowBytes) / yscale;
+				
+				c.MoveTo (oldX, oldY);
+				c.LineTo (newX, newY);
+				c.Stroke ();
+				
+				oldX = newX;
+				oldY = newY;
+			}
+			c.Color = Black;
 			
 			// Labels
 			c.LineWidth = 1;
+			c.FontSize = 15 * h / 480;
+			if (15 * h / 480 > 20)
+				c.FontSize = 20;
 			
 			// Memory
 			for (int i = 0; i <= 10; i++) {
@@ -158,6 +191,10 @@ namespace HeapBuddy {
 			}
 			
 			// Time
+			c.FontSize = 15 * w / 640;
+			if (15 * w / 640 > 20)
+				c.FontSize = 20;
+			
 			for (int i = 0; i < 15; i++) {
 				c.MoveTo (GOX + i * GW / 15, GOY);
 				c.LineTo (GOX + i * GW / 15, GOY + 5);
@@ -170,13 +207,27 @@ namespace HeapBuddy {
 			}
 		}
 		
+		public enum MemAction {
+			NoOp,
+			Gc,
+			Resize
+		}
+		
 		public class MemStamp {
 			public long LiveBytes;
 			public long TimeT;
+			public MemAction Op;
 			
 			public MemStamp (long bytes, long time) {
 				LiveBytes = bytes;
 				TimeT = time;
+				Op = MemAction.NoOp;
+			}
+			
+			public MemStamp (long bytes, long time, MemAction op) {
+				LiveBytes = bytes;
+				TimeT = time;
+				Op = op;
 			}
 		}
 		
@@ -194,11 +245,11 @@ namespace HeapBuddy {
 		public void CollectStamps ()
 		{
 			foreach (Gc gc in Reader.Gcs) {
-				Stamps.Add (new MemStamp (gc.PostGcLiveBytes, gc.TimeT));
+				Stamps.Add (new MemStamp (gc.PostGcLiveBytes, gc.TimeT, MemAction.Gc));
 			}
 			
 			foreach (Resize r in Reader.Resizes) {
-				Stamps.Add (new MemStamp (r.TotalLiveBytes, r.time_t));
+				Stamps.Add (new MemStamp (r.TotalLiveBytes, r.time_t, MemAction.Resize));
 			}
 		}
 
@@ -207,8 +258,31 @@ namespace HeapBuddy {
 			IComparer ic = new MemStampComparer ();
 			Stamps.Sort (ic);
 		}
+		
+		protected void SaveGraph (object o, EventArgs e)
+		{
+			FileChooserDialog chooser = new FileChooserDialog ("Save As", MainWindow, FileChooserAction.Save);
+			chooser.AddButton (Stock.Cancel, ResponseType.Cancel);
+			chooser.AddButton (Stock.Save, ResponseType.Ok);
+			
+			int response = chooser.Run ();
+			
+			if ((ResponseType)response == ResponseType.Ok) {
+				int x, y, w, h, d;
+				Window.GetGeometry (out x, out y, out w, out h, out d);
+				
+				Surface s = new ImageSurface (Format.RGB24, w, h);
+				Context.Target = s;
+				this.Continue ();
+
+				s.WriteToPng (chooser.Filename);
+				s.Finish ();
+			}
+			
+			chooser.Destroy ();
+		}
 	
-		protected static void QuitApplication (object o, EventArgs e)
+		protected void QuitApplication (object o, EventArgs e)
 		{
 			Application.Quit ();
 		}
