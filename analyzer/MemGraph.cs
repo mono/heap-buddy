@@ -1,186 +1,279 @@
-using System;
-using System.Collections;
 using Cairo;
 using Gtk;
+using Mono.Unix.Native;
+using System;
+using System.Collections;
 
 namespace HeapBuddy {
+
+	public class MemStamp
+	{
+			public Timeval Time;
+			public string Type;
+			public long Bytes;
+			
+			public MemStamp (Timeval time, string type, long bytes)
+			{
+				Time  = time;
+				Type  = String.Intern (type);
+				Bytes = bytes;
+			}
+
+			public MemStamp (long time, long bytes)
+			{
+				Time  = new Timeval ();
+				Time.tv_sec = time;
+				Time.tv_usec = 0;
+				Type  = null;
+				Bytes = bytes;
+			}
+			
+			public long Seconds {
+				get {
+					return Time.tv_sec;
+				}
+			}
+			
+			public long USeconds {
+				get {
+					return Time.tv_usec;
+				}
+			}
+	}
 	
-	public class MemGraph {
+	public class MemStampComparer : IComparer {
+		int IComparer.Compare (System.Object x, System.Object y) {
+			MemStamp a = (MemStamp)x;
+			MemStamp b = (MemStamp)y;
+			
+			if (a.Seconds > b.Seconds)
+				return 1;
+			else if (a.Seconds < b.Seconds)
+				return -1;
+			else
+			{
+				if (a.USeconds > b.USeconds)
+					return 1;
+				else if (a.USeconds < b.USeconds)
+					return -1;
+				else
+					return 0;
+			}
+		}
+	}
 	
-		private class MemStamp {
-			public long LiveBytes;
-			public long TimeT;
-			
-			public MemStamp (long bytes, long time) {
-				LiveBytes = bytes;
-				TimeT = time;
-			}
-		}
+	public class MemGraph : DrawingArea
+	{
+	
+		private Context myContext;
+		private ArrayList StampBook;
+		private bool isSorted;
+		private long HighTime = 0;
+		private long LowTime= (uint)-1;
+		private Gdk.Window myWindow;
+		private double Scale = 1;
+		private int x, y, w, h, d;
 		
-		private class MemStampComparer : IComparer {
-			int IComparer.Compare (System.Object x, System.Object y) {
-				MemStamp a = (MemStamp)x;
-				MemStamp b = (MemStamp)y;
-			
-				if (a.TimeT > b.TimeT) return 1;
-				else if (a.TimeT < b.TimeT) return -1;
-				else return 0;
-			}
-		}
-		
-		private ArrayList Stamps;
-		static DrawingArea da;
-
-		public MemGraph (OutfileReader reader, string filename)
-		{	
-			Stamps = new ArrayList ();
-			CollectStamps (reader);
-			Sort ();
-			
-			// If we don't have any data, bail
-			if (Stamps.Count <= 0)
-				return;
-			
-			const int SurfaceWidth = 640;
-			const int SurfaceHeight = 480;
-			
-			// Generate our Cairo surface
-			ImageSurface surface = new ImageSurface (Format.RGB24, SurfaceWidth, SurfaceHeight);
-			Context c = new Context (surface);
-			
-			c.Color = new Color (1, 1, 1, 1);
-			c.Paint ();
-			
-			// Calculate our bounds
-			long domain = ((MemStamp)Stamps [Stamps.Count - 1]).TimeT - ((MemStamp)Stamps [0]).TimeT;
-			if (domain == 0)
-				return;
-				
-			long lowBytes = ((MemStamp)Stamps [0]).LiveBytes;
-			long highBytes = 0;
-			
-			foreach (MemStamp ms in Stamps) {
-				if (ms.LiveBytes < lowBytes)
-					lowBytes = ms.LiveBytes;
-				if (ms.LiveBytes > highBytes)
-					highBytes = ms.LiveBytes;
-			}
-				
-			const double GraphWidth = 570;
-			const double GraphHeight = 420;
-			const double GraphOriginX = SurfaceWidth - GraphWidth - 15;
-			const double GraphOriginY = 15;
-				
-			// We need to scale this puppy...
-			double xscale = (double)domain / GraphWidth;
-			double yrange = highBytes - lowBytes;
-			double yscale = yrange / GraphHeight;
-			
-			//Matrix m = c.Matrix;
-			//m.Scale (xscale, yscale);
-			//c.Matrix = m;
-			
-			c.Color = new Color (0, 0, 0, 1);
-			
-			c.LineWidth = 2;			
-			c.Rectangle (GraphOriginX, GraphOriginY, GraphWidth, GraphHeight);
-			
-			c.MoveTo (GraphOriginX, GraphOriginY + GraphHeight);
-			long lowTime = ((MemStamp)Stamps [0]).TimeT;
-			foreach (MemStamp ms in Stamps) {
-				c.LineTo (GraphOriginX + (double)(ms.TimeT - lowTime) / xscale, GraphOriginY + GraphHeight - (double)(ms.LiveBytes - lowBytes) / yscale);
-			}
-			c.LineWidth = 1.5;
-			c.Stroke ();
-			
-			// Draw the Memory Text
-			// Tick Marks...
-			c.FontSize = 15;
-			c.LineWidth = 1;
-
-			for (int i = 0; i <= 10; i++) {
-				c.MoveTo (GraphOriginX - 5, GraphOriginY + GraphHeight - i * GraphHeight / 10);
-				c.LineTo (GraphOriginX, GraphOriginY + GraphHeight - i * GraphHeight / 10);
-				c.Stroke ();
-
-				string s = Util.PrettySize (lowBytes + (i * (long)yrange / 10));
-				TextExtents e = c.TextExtents (s);
-				c.MoveTo (GraphOriginX - e.Width - 10, GraphOriginY + GraphHeight - i * GraphHeight / 10 + 0.5 * e.Height);
-				c.ShowText (s);
-			}
-			
-			// Draw the time Text
-			for (int i = 0; i < 15; i++) {
-				c.MoveTo (GraphOriginX + i * GraphWidth / 10, GraphOriginY + GraphHeight);
-				c.LineTo (GraphOriginX + i * GraphWidth / 10, GraphOriginY + GraphHeight + 5);
-				c.Stroke ();
-				
-				string s = Util.PrettyTime (i * domain / 10);
-				TextExtents e = c.TextExtents (s);
-				c.MoveTo (GraphOriginX + i * GraphWidth / 10 - 0.5 * e.Width, GraphOriginY + GraphHeight + 10 + e.Height);
-				c.ShowText (s);
-			}
-			
-			Application.Init ();
-			
-			Window win = new Window ("Heap-Buddy");
-			win.SetDefaultSize (640, 480);
-			
-			da = new CairoGraph ();
-			win.Add (da);
-			
-			win.ShowAll ();
-			
-			Application.Run ();			
-				
-			if (filename == null)
-				filename = "memlog.png";
-				
-			surface.WriteToPng (filename);
-			surface.Finish ();
-		}
-		
-
-		
-		private void CollectStamps (OutfileReader reader)
+		public MemGraph ()
 		{
-			foreach (Gc gc in reader.Gcs) {
-				Stamps.Add (new MemStamp (gc.PostGcLiveBytes, gc.TimeT));
-			}
+			StampBook = new ArrayList ();
+			isSorted = false;
 			
-			foreach (Resize r in reader.Resizes) {
-				Stamps.Add (new MemStamp (r.TotalLiveBytes, r.time_t));
+			Events = Events | Gdk.EventMask.ButtonPressMask
+			                | Gdk.EventMask.ButtonReleaseMask;
+			ButtonPressEvent += ButtonPress;
+			ButtonReleaseEvent += ButtonRelease;
+		}
+		
+		public Cairo.Context Context {
+			get {
+				return myContext;
 			}
 		}
-
-		private void Sort ()
+		
+		public void AddStamp (MemStamp s)
+		{
+			StampBook.Add (s);
+			isSorted = false;
+			
+			if (s.Seconds == 0)
+				return;
+			
+			if (s.Type == null && s.Seconds < LowTime)
+				LowTime = s.Seconds;
+			
+			if (s.Type == null && s.Seconds > HighTime)
+				HighTime = s.Seconds;
+		}
+		
+		public void Sort ()
 		{
 			IComparer ic = new MemStampComparer ();
-			Stamps.Sort (ic);
+			StampBook.Sort (ic);
 		}
-			
-	}
-	
-}
+		
+		public void Draw ()
+		{
+				if (!isSorted)
+					Sort ();					
 
-public class CairoGraph : DrawingArea
-{
-	protected override bool OnExposeEvent (Gdk.EventExpose args)
-	{
-		Gdk.Window win = args.Window;
+				Context c = myContext;
+
+				Color Black = new Color (0, 0, 0, 1);
+				Color White = new Color (1, 1, 1, 1);
+				Color Red   = new Color (1, 0, 0, 1);
+				Color Blue  = new Color (0, 0, 1, 1);
+				
+				c.Color = White;
+				c.MoveTo (x - 50, y - 50);
+				c.LineTo (x + w + 50, y - 50);
+				c.LineTo (x + w + 50, y + h + 50);
+				c.LineTo (x - 50, y + h + 50);
+				c.Clip ();
+				c.Fill ();
+				c.Paint ();
+				c.Stroke ();
+
+				myWindow.GetGeometry (out x, out y, out w, out h, out d);
+
+				long TimeSpan = HighTime - LowTime;
+				if (TimeSpan == 0)
+					return;
+					
+				long LowBytes = ((MemStamp)StampBook [0]).Bytes;
+				long HighBytes = 0;
+				
+				foreach (MemStamp ms in StampBook) {
+					if (ms.Type != null)
+						continue;
+				
+					if (ms.Bytes < LowBytes)
+						LowBytes = ms.Bytes;
+					if (ms.Bytes > HighBytes)
+						HighBytes = ms.Bytes;
+				}
+				
+				double GOY;
+				double GOX;
+				double GW;
+				double GH;
+				double xscale;
+				double yscale;
+				double yrange;
+				string label;
+				
+				c.Scale (Scale, Scale);
+				
+				c.FontSize = 15 * w / 640;
+				if (15 * w / 640 > 20)
+					c.FontSize = 20;
+					
+				label = Util.PrettySize (HighBytes);
+				GOY = h - c.TextExtents (label).Height - 30;
+				
+				c.FontSize = 15 * h / 480;
+				if (15 * h / 480 > 20)
+					c.FontSize = 20;
+
+				GOX = c.TextExtents (label).Width + 15;
+				GW = w - GOX - 10;
+				GH = GOY - 10;
+				
+				xscale = (double)TimeSpan / GW;
+				yrange = HighBytes - LowBytes;
+				yscale = yrange / GH;
+				
+				c.MoveTo (GOX, GOY);
+				
+				double oldX = GOX;
+				double oldY = GOY;
+				double newX, newY;
+				
+				c.LineWidth = 1.5;
+				c.Color = Blue;
+				foreach (MemStamp ms in StampBook) {
+					if (ms.Type != null)
+						continue;
+				
+					newX = GOX + (double)(ms.Seconds + ms.USeconds / 1000 - LowTime) / xscale;
+					newY = GOY - (double)(ms.Bytes - LowBytes) / yscale;
+					
+					c.MoveTo (oldX, oldY);
+					c.LineTo (newX, newY);
+					c.Stroke ();
+					
+					oldX = newX;
+					oldY = newY;
+				}
+				
+				// Labels
+				c.Color = Black;
+				c.LineWidth = 1;
+				c.FontSize = 15 * h / 480;
+				if (15 * h / 480 > 20)
+					c.FontSize = 20;
+				
+				// Memory
+				for (int i = 0; i <= 10; i++) {
+					c.MoveTo (GOX - 5, GOY - i * GH / 10);
+					c.LineTo (GOX, GOY - i * GH / 10);
+					c.Stroke ();
+					
+					label = Util.PrettySize (LowBytes + (i * (long)yrange / 10));
+					TextExtents e = c.TextExtents (label);
+					c.MoveTo (GOX - 10 - e.Width, GOY - i * GH / 10 + 0.5 * e.Height);
+					c.ShowText (label);
+				}
+				
+				// Time
+				c.FontSize = 15 * w / 640;
+				if (15 * w / 640 > 20)
+					c.FontSize = 20;
+				
+				for (int i = 0; i < 15; i++) {
+					c.MoveTo (GOX + i * GW / 15, GOY);
+					c.LineTo (GOX + i * GW / 15, GOY + 5);
+					c.Stroke ();
+					
+					label = Util.PrettyTime (i * TimeSpan / 15);
+					TextExtents e = c.TextExtents (label);
+					c.MoveTo (GOX + i * GW / 15 - 0.5 * e.Width, GOY + 15 + e.Height);
+					c.ShowText (label);
+				}
+
+				//Border
+				c.Color = Black;
+				c.LineWidth = 2;
+				c.Rectangle (GOX, GOY, GW, -GH);
+				c.Stroke ();
+		}
 		
-		Cairo.Context g = Gdk.Context.CreateDrawable (win);
+		protected void ButtonPress (object o, ButtonPressEventArgs e)
+		{
+			Scale = 2;
+			Draw ();
+			QueueDrawArea (x, y, w, h);
+			Console.Write ("Down : ");
+		}
+		
+		protected void ButtonRelease (object o, ButtonReleaseEventArgs e)
+		{
+			Scale = 1;
+			Draw ();
+			QueueDrawArea (x, y, w, h);
+			Console.WriteLine ("Up");
+		}
 	
-		g.ResetClip ();
-		g.Color = new Color (0, .6, .6, 1);
-		g.Paint ();
-		
-		g.Color = new Color (1, 1, 1, 1);
-		g.MoveTo (0, 0);
-		g.LineTo (500, 500);
-		g.LineWidth = 4;
-		g.Stroke ();
-		
-		return true;
+		protected override bool OnExposeEvent (Gdk.EventExpose args)
+		{
+			myWindow = args.Window;
+			
+			myContext = Gdk.Context.CreateDrawable (myWindow);
+			Draw ();
+			
+			return true;	
+		}
+	
 	}
+	
 }

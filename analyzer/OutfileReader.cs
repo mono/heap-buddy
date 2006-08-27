@@ -32,8 +32,8 @@ namespace HeapBuddy {
 		public bool Debug = false;
 
 		const uint magic_number = 0x4eabbdd1;
-		const int expected_log_version = 5;
-		const int expected_summary_version = 2;
+		const int expected_log_version = 6;
+		const int expected_summary_version = 3;
 		const string log_file_label = "heap-buddy logfile";
 		const string summary_file_label = "heap-buddy summary";
 
@@ -473,6 +473,7 @@ namespace HeapBuddy {
 
 			gc.Generation = reader.ReadInt32 ();
 			gc.TimeT = reader.ReadInt64 ();
+			gc.UTimeT = reader.ReadInt64 ();
 			gc.Timestamp = Util.ConvertTimeT (gc.TimeT);
 			gc.PreGcLiveBytes = reader.ReadInt64 ();
 			gc.PreGcLiveObjects = reader.ReadInt32 ();
@@ -962,6 +963,7 @@ namespace HeapBuddy {
 
 				gc.Generation = reader.ReadInt32 ();
 				gc.TimeT = reader.ReadInt64 ();
+				gc.UTimeT = reader.ReadInt64 ();
 				gc.Timestamp = Util.ConvertTimeT (gc.TimeT);
 				gc.PreGcLiveBytes = reader.ReadInt64 ();
 				gc.PreGcLiveObjects = reader.ReadInt32 ();
@@ -1068,6 +1070,7 @@ namespace HeapBuddy {
 			for (int i = 0; i < gcs.Length; ++i) {
 				writer.Write (gcs [i].Generation);
 				writer.Write (gcs [i].TimeT);
+				writer.Write (gcs [i].UTimeT);
 				writer.Write (gcs [i].PreGcLiveBytes);
 				writer.Write (gcs [i].PreGcLiveObjects);
 				writer.Write (gcs [i].PostGcLiveBytes);
@@ -1158,7 +1161,9 @@ namespace HeapBuddy {
 
 		public GcData [] GetGcData (int generation)
 		{
-			lazy_reader.BaseStream.Seek (gc_pos [generation], SeekOrigin.Begin);
+			try {
+				lazy_reader.BaseStream.Seek (gc_pos [generation], SeekOrigin.Begin);
+			} catch (Exception e) { }
 
 			int length;
 			length = lazy_reader.ReadInt32 ();

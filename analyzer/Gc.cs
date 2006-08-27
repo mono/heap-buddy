@@ -35,6 +35,7 @@ namespace HeapBuddy {
 		public int Generation;
 
 		public long TimeT;
+		public long UTimeT;
 		public DateTime Timestamp;
 
 		public long PreGcLiveBytes;

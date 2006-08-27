@@ -47,6 +47,10 @@ void           outfile_writer_close          (OutfileWriter *ofw);
 
 void           outfile_writer_add_accountant (OutfileWriter *ofw, Accountant *acct);
 
+void           type_writer_start_types       (FILE * file, GHashTable *g);
+
+void           type_writer_update_types      (FILE * file, const char *name, gint32 bytes);
+
 void           outfile_writer_gc_begin       (OutfileWriter *ofw, 
                                               gboolean       is_final, 
                                               gint64         total_live_bytes, 

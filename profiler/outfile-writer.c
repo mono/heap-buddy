@@ -23,13 +23,16 @@
  * USA.
  */
 
+#include <glib.h>
 #include <string.h>
+#include <stdint.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "outfile-writer.h"
 
 #define MAGIC_NUMBER 0x4eabbdd1
-#define FILE_FORMAT_VERSION 5
+#define FILE_FORMAT_VERSION 6
 #define FILE_LABEL "heap-buddy logfile"
 
 #define TAG_TYPE    0x01
@@ -220,6 +223,28 @@ outfile_writer_add_accountant (OutfileWriter *ofw,
         fflush (ofw->out);
 }
 
+void
+type_writer_start_types (FILE * file, GHashTable *g)
+{
+//	time_t timestamp;
+//	time (&timestamp);
+	struct timeval time;
+	gettimeofday (&time, NULL);
+	
+	//fprintf (file, "%d elements\n", (int)g_hash_table_size (g));
+	write_int64 (file, (gint64)time.tv_sec);
+	write_int64 (file, (gint64)time.tv_usec);
+	write_uint32 (file, (guint32)g_hash_table_size (g));
+}
+
+void
+type_writer_update_types (FILE * file, const char *name, gint32 bytes)
+{
+	//fprintf (file, "\t%d bytes of %s\n", (int)bytes, name);
+	write_int32 (file, bytes);
+	write_string (file, name);
+}
+
 // total_live_bytes is the total size of all of the live objects
 // before the GC
 void
@@ -229,12 +254,15 @@ outfile_writer_gc_begin (OutfileWriter *ofw,
                          gint32         total_live_objects,
                          gint32         n_accountants)
 {
-        time_t timestamp;
-        time (&timestamp);
-
+        //time_t timestamp;
+        //time (&timestamp);
+        struct timeval time;
+        gettimeofday (&time, NULL);
+        
         write_byte (ofw->out, TAG_GC);
         write_int32 (ofw->out, is_final ? -1 : ofw->gc_count);
-        write_int64 (ofw->out, (gint64) timestamp);
+        write_int64 (ofw->out, (gint64) time.tv_sec);
+        write_int64 (ofw->out, (gint64) time.tv_usec);
         write_int64 (ofw->out, total_live_bytes);
         write_int32 (ofw->out, total_live_objects);
         write_int32 (ofw->out, n_accountants);

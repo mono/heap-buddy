@@ -23,6 +23,8 @@
  * USA.
  */
 
+#include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 #include <glib.h>
 #include <mono/metadata/assembly.h>
@@ -66,6 +68,77 @@ create_mono_profiler (const char *outfilename)
 
 /* ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** */
 
+GHashTable *memlog = NULL;
+const char *memlog_name = "outfile.types";
+FILE *memlog_file = NULL;
+
+void
+init_memory_logging ( )
+{
+	memlog_file = fopen (memlog_name, "w+");
+	
+	memlog = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+}
+
+void
+clear_memory_log ( )
+{
+	g_hash_table_destroy (memlog);
+	memlog = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+}
+
+void
+close_memory_logging ( )
+{
+	g_hash_table_destroy (memlog);
+
+	fclose (memlog_file);
+}
+
+void
+memlog_add_alloc (MonoObject *obj, MonoClass *klass)
+{
+	const char *name;
+	gint32 *size;
+	
+	size = g_new0 (gint32, 1);
+		
+	*size = mono_object_get_size (obj);
+	name  = mono_class_get_name (klass);
+	
+	//type = g_hash_table_lookup (memlog, name);
+	
+	gpointer old_key;
+	gpointer old_val;
+	
+	if (g_hash_table_lookup_extended (memlog, name, &old_key, &old_val))
+		*(gint32 *)old_val += *size;
+	else
+		g_hash_table_insert (memlog, g_strdup (name), GINT_TO_POINTER(size));
+
+}
+
+void
+memlog_add_gc_obj (Accountant *acct)
+{
+	const char * name = mono_class_get_name (acct->klass);
+	
+	gpointer old_key;
+	gpointer old_val;
+	
+	if (g_hash_table_lookup_extended (memlog, name, &old_key, &old_val)) {
+		*(gint32 *)old_val = acct->n_allocated_bytes;
+	}
+}
+
+void
+memlog_update_log_file (gpointer key, gpointer val, gpointer data)
+{
+	type_writer_update_types (memlog_file, (const char *)key, *(gint32 *)val);
+}
+
+/* ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** */
+
 static void
 heap_buddy_alloc_func (MonoProfiler *p, MonoObject *obj, MonoClass *klass)
 {
@@ -90,6 +163,8 @@ heap_buddy_alloc_func (MonoProfiler *p, MonoObject *obj, MonoClass *klass)
 	p->total_live_bytes += size;
 	p->total_allocated_objects++;
 	p->total_live_objects++;
+	
+	memlog_add_alloc (obj, klass);
 
 	mono_mutex_unlock (&p->lock);
 }
@@ -112,6 +187,8 @@ post_gc_logging_fn (gpointer key, gpointer value, gpointer user_data)
 {
 	MonoProfiler *p = user_data;
 	Accountant *acct = value;
+	
+	memlog_add_gc_obj (acct);
 
 	// Only log the accountant's stats to the outfile if
 	// something has changed since the last time it was logged.
@@ -131,6 +208,8 @@ heap_buddy_gc_func (MonoProfiler *p, MonoGCEvent e, int gen)
 		return;
 
 	mono_mutex_lock (&p->lock);
+	
+	type_writer_start_types (memlog_file, memlog);
 
 	prev_total_live_bytes = p->total_live_bytes;
 	prev_total_live_objects = p->total_live_objects;
@@ -151,6 +230,9 @@ heap_buddy_gc_func (MonoProfiler *p, MonoGCEvent e, int gen)
 			       p->total_allocated_objects,
 			       p->total_live_bytes,
 			       p->total_live_objects);
+			      
+	g_hash_table_foreach (memlog, memlog_update_log_file, NULL);
+	clear_memory_log ();
 
 	mono_mutex_unlock (&p->lock);
 }
@@ -172,6 +254,8 @@ heap_buddy_shutdown (MonoProfiler *p)
 	heap_buddy_gc_func (p, MONO_GC_EVENT_MARK_END, -1);
 
 	outfile_writer_close (p->outfile_writer);
+	
+	close_memory_logging ();
 }
 
 void
@@ -193,6 +277,8 @@ mono_profiler_startup (const char *desc)
 
 	g_print ("*** Running with heap-buddy ***\n");
 	
+	init_memory_logging ();
+	
 	mono_profiler_install_allocation (heap_buddy_alloc_func);
 
 	mono_profiler_install_gc (heap_buddy_gc_func, heap_buddy_gc_resize_func);
@@ -202,10 +288,4 @@ mono_profiler_startup (const char *desc)
 	p = create_mono_profiler (outfilename);
 
 	mono_profiler_install (p, heap_buddy_shutdown);
-}
-
-void
-socket_init ()
-{
-
 }
