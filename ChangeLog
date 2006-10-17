@@ -1,0 +1,5 @@
+2006-10-17  Miguel de Icaza  <miguel@novell.com>
+
+	* COPYING: Relicensed heap-buddy to MIT X11 after getting approval
+	from Nat Friedman and JP Rosevar.
+
