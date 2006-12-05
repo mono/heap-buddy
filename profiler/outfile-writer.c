@@ -53,36 +53,42 @@ static void
 write_pointer (FILE *out, gpointer x)
 {
         guint32 y = GPOINTER_TO_UINT (x);
+        y = GINT32_TO_LE(y);
         fwrite (&y, sizeof (guint32), 1, out);
 }
 
 static void
 write_int16 (FILE *out, gint16 x)
 {
+        x = GINT16_TO_LE(x);
         fwrite (&x, sizeof (gint16), 1, out);
 }
 
 static void
 write_uint16 (FILE *out, guint16 x)
 {
+        x = GUINT16_TO_LE(x);
         fwrite (&x, sizeof (guint16), 1, out);
 }
 
 static void
 write_int32 (FILE *out, gint32 x)
 {
+        x = GINT32_TO_LE(x);
         fwrite (&x, sizeof (gint32), 1, out);
 }
 
 static void
 write_uint32 (FILE *out, guint32 x)
 {
+        x = GUINT32_TO_LE(x);
         fwrite (&x, sizeof (guint32), 1, out);
 }
 
 static void
 write_int64 (FILE *out, gint64 x)
 {
+        x = GINT64_TO_LE(x);
         fwrite (&x, sizeof (gint64), 1, out);
 }
 
