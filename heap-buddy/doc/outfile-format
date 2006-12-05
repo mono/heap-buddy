@@ -1,0 +1,40 @@
+
+
+*** HEADER ***
+
+ 1b: 10 (the length of the string "HEAP-BUDDY")
+10b: HEAP-BUDDY
+ 4b: int32 containing the version number (4 in this case)
+
+ 1b: 1 if the run terminated normally, 0 otherwise
+ 8b: int64 total number of allocated bytes
+ 4b: int32 total number of GCs, or -1 if unknown
+ 4b: int32 total number of types, or -1
+ 4b: int32 total number of methods, or -1
+ 4b: int32 total number of contexts, or -1
+
+ 8b: int64 offset to GC index, or 0
+ 8b: int64 offset to type index, or 0
+ 8b: int64 offset to method index, or 0
+ 8b: int64 offset to context index, or 0
+
+Maybe some padding to leave room for future expansion?
+
+
+*** TAG STREAM ***
+
+Tag types:
+0x01 Type
+0x02 Method
+0x03 Context
+0x04 GC
+0x05 Resize
+0xff EOS
+
+
+
+
+
+
+
+

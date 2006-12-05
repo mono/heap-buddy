@@ -1,0 +1,183 @@
+
+OVERVIEW:
+
+Heap-buddy is a heap profiler for mono.  It attaches to special hooks in the
+mono runtime and tracks all of the managed memory allocations, every garbage
+collection and every heap resize.  These statistics are written out into a
+data file that we call an 'outfile'.
+
+
+
+INSTALLING HEAP-BUDDY:
+
+./configure; make; make install    from a tarball
+./autogen.sh; make; make install   from SVN
+
+The mono runtime will not find the heap-buddy plug-in unless you install it
+into a prefix that is in your LD_LIBRARY_PATH.
+
+
+
+GENERATING OUTFILES:
+
+mono --profile=heap-buddy foo.exe           writes the alloc data to ./outfile
+mono --profile=heap-buddy:/foo/bar foo.exe  writes the alloc data to /foo/bar
+
+
+
+PRODUCING STATISTICS FROM OUTFILES:
+
+Heap-buddy can currently generate four reports about your program's memory
+usage.  The program that produces the reports is also called heap-buddy.  The
+general form of a heap-buddy command-line is:
+
+  % heap-buddy <outfile name> <report name> <arguments>
+
+If you omit the outfile name, it defaults to 'outfile'.  If you omit the
+report name, it defaults to the summary report.
+
+(1) Summary Report
+
+This report prints some basic high-level information about that run's
+allocations.  It does not take any arguments.
+
+% heap-buddy outfile.beagled summary
+
+           SUMMARY
+
+         Filename: outfile.beagled
+  Allocated Bytes: 131.8M
+Allocated Objects: 2238291
+              GCs: 74
+          Resizes: 16
+  Final heap size: 17.6M
+
+   Distinct Types: 418
+       Backtraces: 29141
+
+
+(2) GC/Resize History
+
+This report prints information about every GC and heap resize.  It does
+not take any arguments.
+
+20:59:13 | Init   | Initialized heap to 128k
+         |        |
+20:59:13 | Resize | Grew heap from 128k to 192k
+         |        | 4.0k in live objects
+         |        | Heap went from 3.2% to 2.1% capacity
+         |        |
+20:59:13 | Resize | Grew heap from 192k to 268k
+         |        | 40k in live objects
+         |        | Heap went from 20.8% to 14.9% capacity
+         |        |
+20:59:13 | GC 0   | Collected 630 of 1407 objects (44.8%)
+         |        | Collected 24k of 83k (29.0%)
+         |        | Heap went from 31.2% to 22.2% capacity
+(etc.)
+
+
+(3) Statistics by Type
+
+This report tells you about how many objects of each type were instantiated,
+and how much memory was consumed.  By default, it prints the 25 types that
+consumed the most bytes in memory.
+
+% heap-buddy outfile.beagled types
+
+                  Type                     #   Total  AvSz AvAge  BT#
+                                 byte[]  68280 57.7M 886.5   0.0  432
+                                 string 666060 34.8M  54.8   0.4 4953
+                                 char[]  42677 10.1M 249.4   0.1  267
+              System.Text.StringBuilder 139524  3.2M  24.0   0.0  784
+                                    int 243299  2.8M  12.0   0.0  346
+(etc.)
+
+Heap-buddy features the patent-pending Elizatron 2000(tm) natural language
+command-line interface.  Instead of having to use cryptic, hard-to-remember
+command line arguments (i.e. "heap-buddy -x -q -iii --frobnicate-goats 47"),
+you simply talk to the computer the way you might address to a small child or
+intelligent dog who has a freakish, savant-like understanding of garbage
+collection.  Valid heap-buddy command lines include:
+
+  heap-buddy types sorted by average age
+  heap-buddy types 50 sorted by count and make it snappy
+  heap-buddy types and please show me the full names
+  heap-buddy types all matching System.Xml and sort them by average size
+
+Using a low-level development tool has never been more fun!
+
+
+(4) Statistics by Backtrace
+
+This report produces statistics similar to the type report, but it tells you
+exactly where each allocation occurred.
+
+% heap-buddy outfile.beagled backtraces
+
+                     Backtrace                        #   Total  AvSz  AvAge
+
+                                       type=byte[]   1208 10.4M 9069.2   1.1
+               System.IO.MemoryStream:set_Capacity
+                      System.IO.MemoryStream:Write
+                         GMime.Stream:CopyToStream
+                        GMime.Object:WriteToStream
+ Beagle.Daemon.Evolution...GMimeMessageToIndexable
+ Beagle.Daemon.Evolution...orMbox:GetNextIndexable
+                       AddGeneratorTask:DoTaskReal
+                                       Task:DoTask
+                      Beagle.Util.Scheduler:Worker
+
+                                       type=byte[]   1208 10.4M 9069.2   0.0
+                         GMime.Stream:CopyToStream
+                        GMime.Object:WriteToStream
+ Beagle.Daemon.Evolution...GMimeMessageToIndexable
+ Beagle.Daemon.Evolution...orMbox:GetNextIndexable
+                       AddGeneratorTask:DoTaskReal
+                                       Task:DoTask
+                      Beagle.Util.Scheduler:Worker
+(etc.)
+
+You can also use Elizatron 2000(tm)-style arguments with this report.
+
+
+
+KNOWN BUGS/ISSUES:
+
+On SMP systems, heap-buddy will cause the mono runtime to lock up almost
+immediately.
+
+Outfiles are not architecture independent.
+
+Heap-buddy is not smart about recursive programs.  If you have a recursive
+function that contains allocations, each level of recursion will generate a
+distinct backtrace.  This produces extremely large outfiles and
+difficult-to-read reports.  (This is fixable, but requires adding code to the
+runtime plug-in to intelligently detect cycles in backtraces.)
+
+Some misguided people think that the natural language interface is silly.
+
+
+LICENSE:
+
+The code is licensed under the terms of the MIT X11 license:
+
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the
+ "Software"), to deal in the Software without restriction, including
+ without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to
+ permit persons to whom the Software is furnished to do so, subject to
+ the following conditions:
+ 
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
