@@ -163,7 +163,10 @@ heap_buddy_gc_resize_func (MonoProfiler *p, gint64 new_size)
 {
 	mono_mutex_lock (&p->lock);
 
-	outfile_writer_resize (p->outfile_writer, new_size, p->total_live_bytes);
+	outfile_writer_resize (p->outfile_writer,
+			       new_size,
+			       p->total_live_bytes,
+			       p->total_live_objects);
 
 	mono_mutex_unlock (&p->lock);
 }

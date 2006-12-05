@@ -42,6 +42,8 @@ namespace HeapBuddy {
 
 		public long TotalLiveBytes;
 
+		public int TotalLiveObjects;
+
 		public double PreResizeCapacity {
 			get { return PreviousSize == 0 ? 0 : 100.0 * TotalLiveBytes / PreviousSize; }
 		}
@@ -62,6 +64,7 @@ namespace HeapBuddy {
 			Timestamp = Util.ConvertTimeT (time_t);
 			NewSize = reader.ReadInt64 ();
 			TotalLiveBytes = reader.ReadInt64 ();
+			TotalLiveObjects = reader.ReadInt32 ();
 		}
 
 		public void Write (BinaryWriter writer)
@@ -70,6 +73,7 @@ namespace HeapBuddy {
 			writer.Write (time_t);
 			writer.Write (NewSize);
 			writer.Write (TotalLiveBytes);
+			writer.Write (TotalLiveObjects);
 		}
 	}
 }

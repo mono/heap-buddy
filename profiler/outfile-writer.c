@@ -33,7 +33,7 @@
 #include "outfile-writer.h"
 
 #define MAGIC_NUMBER 0x4eabbdd1
-#define FILE_FORMAT_VERSION 5
+#define FILE_FORMAT_VERSION 6
 #define FILE_LABEL "heap-buddy logfile"
 
 #define TAG_TYPE    0x01
@@ -281,7 +281,8 @@ outfile_writer_gc_end (OutfileWriter *ofw,
 void
 outfile_writer_resize (OutfileWriter *ofw,
                        gint64         new_size,
-                       gint64         total_live_bytes)
+                       gint64         total_live_bytes,
+                       gint32         total_live_objects)
 {
         time_t timestamp;
         time (&timestamp);
@@ -290,6 +291,7 @@ outfile_writer_resize (OutfileWriter *ofw,
         write_int64 (ofw->out, (gint64) timestamp);
         write_int64 (ofw->out, new_size);
         write_int64 (ofw->out, total_live_bytes);
+        write_int32 (ofw->out, total_live_objects);
         ++ofw->resize_count;
         outfile_writer_update_totals (ofw, -1, -1);
         fflush (ofw->out);

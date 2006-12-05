@@ -34,7 +34,7 @@ namespace HeapBuddy {
 		public bool Debug = false;
 
 		const uint magic_number = 0x4eabbdd1;
-		const int expected_log_version = 5;
+		const int expected_log_version = 6;
 		const int expected_summary_version = 2;
 		const string log_file_label = "heap-buddy logfile";
 		const string summary_file_label = "heap-buddy summary";
@@ -511,7 +511,7 @@ namespace HeapBuddy {
 			r.Read (reader, i_gc);
 			if (i_resize > 0)
 				r.PreviousSize = resizes [i_resize-1].NewSize;
-			Spew ("Resize to {0}, {1} live bytes", r.NewSize, r.TotalLiveBytes);
+			Spew ("Resize to {0}, {1} live bytes, {2} live objects", r.NewSize, r.TotalLiveBytes, r.TotalLiveObjects);
 			resizes [i_resize] = r;
 			++i_resize;
 		}

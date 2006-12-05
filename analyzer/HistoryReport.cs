@@ -75,11 +75,12 @@ namespace HeapBuddy {
 					} else {
 						tag = "Resize";
 						message = String.Format ("Grew heap from {0} to {1}\n" +
-									 "{2} in live objects\n" +
-									 "Heap went from {3:0.0}% to {4:0.0}% capacity",
+									 "{2} in {3} live objects\n" +
+									 "Heap went from {4:0.0}% to {5:0.0}% capacity",
 									 Util.PrettySize (r.PreviousSize),
 									 Util.PrettySize (r.NewSize),
 									 Util.PrettySize (r.TotalLiveBytes),
+									 r.TotalLiveObjects,
 									 r.PreResizeCapacity, r.PostResizeCapacity);
 					}
 

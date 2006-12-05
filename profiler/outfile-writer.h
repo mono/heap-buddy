@@ -65,7 +65,10 @@ void           outfile_writer_gc_end         (OutfileWriter *ofw,
                                               gint64         total_live_bytes,
                                               gint32         total_live_objects);
 
-void           outfile_writer_resize         (OutfileWriter *ofw, gint64 new_size, gint64 total_live_bytes);
+void           outfile_writer_resize         (OutfileWriter *ofw,
+                                              gint64         new_size,
+                                              gint64         total_live_bytes,
+                                              gint32         total_live_objects);
 
 #endif /* __OUTFILE_WRITER_H__ */
 

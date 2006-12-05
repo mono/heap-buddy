@@ -28,6 +28,7 @@
  */
 
 #include <mono/metadata/mono-debug.h>
+#include <mono/io-layer/mono-mutex.h>
 #include "backtrace.h"
 
 struct HashAndCountInfo {
@@ -81,23 +82,32 @@ stack_walk_build_frame_vector_fn (MonoMethod *method, gint32 native_offset, gint
         return FALSE;
 }
 
+static GHashTable *backtrace_cache = NULL;
+static mono_mutex_t backtrace_cache_lock = MONO_MUTEX_INITIALIZER;
+
 StackFrame **
 backtrace_get_current ()
 {
-        static GHashTable *backtrace_cache = NULL;
-
         struct HashAndCountInfo hc_info;
         struct FrameInfo frame_info;
 
+        mono_mutex_lock (&backtrace_cache_lock);
+
         if (backtrace_cache == NULL)
                 backtrace_cache = g_hash_table_new (NULL, NULL);
+
+        mono_mutex_unlock (&backtrace_cache_lock);
 
         hc_info.hash = 0;
         hc_info.count = 0;
         mono_stack_walk_no_il (stack_walk_hash_and_count_fn, &hc_info);
 
         StackFrame **frame_vec;
+
+        mono_mutex_lock (&backtrace_cache_lock);
         frame_vec = g_hash_table_lookup (backtrace_cache, GUINT_TO_POINTER (hc_info.hash));
+        mono_mutex_unlock (&backtrace_cache_lock);
+
         if (frame_vec != NULL)
                 return frame_vec;
 
@@ -107,7 +117,10 @@ backtrace_get_current ()
         frame_info.pos = 0;
         frame_info.vec = frame_vec;
         mono_stack_walk_no_il (stack_walk_build_frame_vector_fn, &frame_info);
+
+        mono_mutex_lock (&backtrace_cache_lock);
         g_hash_table_insert (backtrace_cache, GUINT_TO_POINTER (hc_info.hash), frame_vec);
+        mono_mutex_unlock (&backtrace_cache_lock);
 
         return frame_vec;
 }
