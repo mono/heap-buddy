@@ -1,4 +1,14 @@
 
+Version 0.2
+5 December 2006
+
+* Relicensed from GPL to MIT X11.
+* Fix deadlock problems on SMP machines.  (Joe Shaw)
+* Always write numerical values as little endian.  (Chris Seaton)
+* Write out the number of live objects in the heap resize hook.  (Joe)
+
+------------------------------------------------------
+
 Version 0.1
 October 10, 2005
 
